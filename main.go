@@ -85,29 +85,6 @@ func outputGameTool(randoms* [5]int, input* [5]int) bool{
 	return false
 }
 
-// 	for input[0] = 9; input[0] >= 5; input[0]-- {
-// 		for input[1] = input[0] - 1; input[1] >= 4; input[1]-- {
-// 			for input[2] = input[1] - 1; input[2] >= 3; input[2]-- {
-// 				for input[3] = input[2] - 1; input[3] >= 2; input[3]-- {
-// 					for input[4] = input[3] - 1; input[4] >= 1; input[4]-- {
-// 						fmt.Print("The result is:")
-// 			for i := 0; i < 5; i++ {
-// 				if(i == 4) {
-// 					fmt.Println(input[i])
-// 				}else {fmt.Print(input[i], " ")}
-// 			}
-// 						if(!outputGameTool(randoms, input)) {
-// 							break
-// 						} else {
-// 							return true
-// 						}
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return false
-// }
 func generateDown(randoms* [5]int, input* [5]int) bool {
 	for i := 98765; i >= 12345; i-- {
 		digits := make(map[int]bool)
@@ -134,18 +111,6 @@ func generateDown(randoms* [5]int, input* [5]int) bool {
 				} else {
 					return true
 				}
-				// for index := 0; index < 5; index++ {
-				// 	if(randoms[index] != input[index]) {
-				// 		break
-				// 	}
-				// 	if(index == 4) {
-				// 		if(randoms[index] != input[index]) {
-				// 			break
-				// 		} else {
-				// 			return true
-				// 		}
-				// 	}
-				// }
 			}
 		}
 	}
@@ -173,17 +138,10 @@ func generateUp(randoms* [5]int, input* [5]int) bool {
 					temp /= 10
 					k--
 				}
-				for index := 0; index < 5; index++ {
-					if(randoms[index] != input[index]) {
-						break
-					}
-					if(index == 4) {
-						if(randoms[index] != input[index]) {
-							break
-						} else {
-							return true
-						}
-					}
+				if(!outputGameTool(randoms, input)) {
+					break
+				} else {
+					return true
 				}
 			}
 		}
