@@ -7,22 +7,175 @@ option go_package= "./proto";
 import "google/api/annotations.proto";
 
 // Here is the overall greeting service definition where we define all our endpoints
-service Greeter {
-  // Sends a greeting
-  rpc SayHello(HelloRequest) returns (HelloReply) {
+service Services {
+  rpc CreateGame(CreateGameRequest) returns (CreateGameReply) {
     option (google.api.http) = {
-      post: "/v1/example/echo"
+      post: "/v1/game/create"
+      body: "*"
+    };
+  }
+  rpc ListGame(ListGameRequest) returns (ListGameReply) {
+    option (google.api.http) = {
+      get: "/v1/game/list"
+    };
+  }
+  rpc GetCurrent(CurrentGameRequest) returns (CurrentGameReply) {
+    option (google.api.http) = {
+      post: "/v1/game/current"
+      body: "*"
+    };
+  }
+  rpc PlayGame(PlayGameRequest) returns (PlayGameReply) {
+    option (google.api.http) = {
+      post: "/v1/game/play"
+      body: "*"
+    };
+  }
+  rpc UpdateGame(UpdateGameRequest) returns (UpdateGameReply) {
+    option (google.api.http) = {
+      post: "/v1/game/update"
+      body: "*"
+    };
+  }
+  rpc HintGame(HintGameRequest) returns (HintGameReply) {
+    option (google.api.http) = {
+      post: "/v1/game/hint"
+      body: "*"
+    };
+  }
+  rpc CreateUser(CreateUserRequest) returns (CreateUserReply) {
+    option (google.api.http) = {
+      post: "/v1/user/create"
+      body: "*"
+    };
+  }
+  rpc GetListUser(ListUserRequest) returns (ListUserReply) {
+    option (google.api.http) = {
+      get: "/v1/user/list"
+    };
+  }
+  rpc GetLeaderBoard(LeaderBoardRequest) returns (LeaderBoardReply) {
+    option (google.api.http) = {
+      post: "/v1/leaderboard/list"
       body: "*"
     };
   }
 }
 
-// The request message containing the user's name
-message HelloRequest {
+//  CREATEGAME
+message CreateGameRequest {
+  int32 wrongLimit = 1;
+}
+message CreateGameReply {
+  string message = 1;
+}
+
+// LISTGAME
+message ListGameRequest {
   string name = 1;
+}
+message Game {
+  int32 _id = 1;
+  string game = 2;
+  int32 wrongLimit = 3;
+}
+// The response message containing the greetings
+message ListGameReply {
+  int32 Length = 1;
+  repeated Game games = 2;
+}
+
+// GETCURRENT
+message GameReply {
+  int32 _id = 1;
+  int32 wrongLimit = 3;
+}
+message CurrentGameRequest {
+  int32 idUser = 1;
+}
+// The response message containing the greetings
+message CurrentGameReply {
+  GameReply game = 1;
+}
+
+// PLAYGAME
+message ListHistory {
+  string userRequest = 1;
+	int32 rightNumber = 2;
+	int32 rightPosition = 3;
+}
+message PlayGameRequest {
+  int32 idUser = 1;
+  string userGuess = 2;
 }
 
 // The response message containing the greetings
-message HelloReply {
+message PlayGameReply {
+  int32 rightNumber = 1;
+  int32 rightPosition = 2;
+  string guessesLeft = 3;
+  string message = 4;
+  repeated ListHistory oldResult = 5;
+}
+// UPDATE
+message UpdateGameRequest {
+  int32 wrongLimit = 1;
+
+}
+// The response message containing the greetings
+message UpdateGameReply {
   string message = 1;
+}
+
+
+// HINTGAME
+message HintGameRequest {
+  int32 idUser = 1;
+  string type = 2;
+}
+// The response message containing the greetings
+message HintGameReply {
+  // int32 idGame = 1;
+  string gameHint = 2;
+}
+
+
+// USER
+
+message CreateUserRequest {
+  string name = 1;
+  string password = 2;
+  // int32 wrongTimes = 2;
+  // GameCurrentUser gameCurrent = 5;
+}
+message CreateUserReply {
+  int32 _id = 1;
+  string message = 2;
+}
+
+message ListUserRequest{
+}
+message User {
+  int32 _id = 1;
+  string name = 2;
+  int32 id_game = 3;//we forget to change password here
+}
+message ListUserReply{
+  int32 length = 1;
+  repeated User users = 2;
+}
+
+// LeaderBoard
+message LeaderBoardData {
+  int32 UserId = 1;
+  string Score = 2;
+}
+
+message LeaderBoardRequest {
+  int32 idGame = 1;
+  int64 size = 2;
+
+}
+message LeaderBoardReply{
+  repeated LeaderBoardData data = 1;
 }

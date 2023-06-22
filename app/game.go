@@ -1,10 +1,30 @@
-package main
+package gameApp
 
 import (
-	"fmt"
-	"math/rand"
-	"time"
+	// "context"
+	// "math/rand"
+	"strconv"
+	// "strings"
+	// "time"
+
+	// "intern2023/database"
+
+	// "intern2023/share"
+
+	// "github.com/redis/go-redis/v9"
 )
+
+
+func FindString(arr []string, target string) bool {
+	for _, str := range arr {
+		if str == target {
+			return true
+		}
+	}
+	return false
+}
+
+
 
 // convert from int to Array
 func convertIntArr(num int, arr *[5]int) {
@@ -16,23 +36,23 @@ func convertIntArr(num int, arr *[5]int) {
 	}
 }
 
-// Create randoms number
-func createNumRand(randoms *[5]int) {
-	check := [10]int{}
-
+func ConvertArrString(arr *[5]int) string {
+	res := ""
 	for i := 0; i < 5; i++ {
-		create := rand.Intn(9) + 1
-		if check[create] == 0 {
-			randoms[i] = create
-			check[create]++
-		} else {
-			i--
-		}
+		res += strconv.Itoa(arr[i])
 	}
-	// for i := 0; i < 5; i++ {
-	// 	fmt.Println(randoms[i])
-	// }
+	return res
 }
+
+func convertStringArr(s string) []int {
+	intArr := make([]int, len(s))
+	for i, c := range s {
+		num, _ := strconv.Atoi(string(c))
+		intArr[i] = num
+	}
+	return intArr
+}
+
 
 // Check number return false if repeat
 func checkRepeat(input *[5]int, check *[10]int) bool {
@@ -46,28 +66,30 @@ func checkRepeat(input *[5]int, check *[10]int) bool {
 	return true
 }
 
-// Get input user
-func inputUser(input *[5]int) {
+// Compare and return output when user play
+func OutputGame(randomString string, inputString string) (int, int) {
+	rightNumber := 0
+	rightPosition := 0
 	check := [10]int{}
-	for {
-		// Input
-		for i := 0; i < 10; i++ {
-			check[i] = 0
-		}
-		for i := 0; i < 5; i++ {
-			fmt.Scan(&input[i])
-			check[input[i]]++
-		}
-		// Check
-		if checkRepeat(input, &check) {
-			break
-		} else {
-			fmt.Println("Your number is invalid! Please enter 5 numbers again: ")
+	randomArr := convertStringArr(randomString)
+	inputArr := convertStringArr(inputString)
+
+	for i := 0; i < 5; i++ {
+		check[randomArr[i]] = i + 1
+	}
+
+	for i := 0; i < 5; i++ {
+		if check[inputArr[i]] != 0 {
+			rightNumber++
+			if check[inputArr[i]] == i+1 {
+				rightPosition++
+			}
 		}
 	}
+
+	return rightNumber, rightPosition
 }
 
-// Compare and return output when user play
 func outputGameUser(randoms *[5]int, input *[5]int, rightNumber *int, rightPosition *int) bool {
 	*rightNumber = 0
 	*rightPosition = 0
@@ -188,49 +210,4 @@ func toolPlay(randoms *[5]int, input *[5]int) bool {
 	return true
 }
 
-func main() {
-	randoms := [5]int{}
-	input := [5]int{}
-	
-	win := false
-	rightNumber := 0
-	rightPosition := 0
-	var player int
 
-	createNumRand(&randoms)
-	fmt.Print("Nguoi choi: 1, May choi: 2: ")
-	fmt.Scanln(&player)
-
-	if player == 1 {
-		for i := 1; i <= 100; i++ {
-			fmt.Println("Doan 5 so lan", i, ": ")
-			inputUser(&input)
-			if outputGameUser(&randoms, &input, &rightNumber, &rightPosition) {
-				win = true
-				break
-			}
-			fmt.Println(rightNumber, " ", rightPosition)
-
-		}
-		if win {
-			fmt.Println("You are win!!!")
-		} else {
-			fmt.Println("You are lose!!!")
-		}
-	} else if player == 2 {
-		start := time.Now()
-		if toolPlay(&randoms, &input) {
-			fmt.Print("The result is:")
-			for i := 0; i < 5; i++ {
-				if i == 4 {
-					fmt.Println(input[i])
-				} else {
-					fmt.Print(input[i], " ")
-				}
-			}
-		}
-		t := time.Now()
-		elapsed := t.Sub(start).Microseconds()
-		fmt.Println("It takes:", elapsed, "microseconds")
-	}
-}
