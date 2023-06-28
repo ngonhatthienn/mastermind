@@ -2,32 +2,20 @@ package gameTest
 
 import (
 	"encoding/json"
-	// "fmt"
+	"fmt"
 	"strconv"
 	"time"
-	
 
-
-	"intern2023/app"
-	"intern2023/share"
-	// "intern2023/database"
-	// pb "intern2023/pb"
+	gameApp "intern2023/app"
 	"intern2023/redis"
-
+	shareFunc "intern2023/share"
 )
-type GameService interface {
-    CreateGames( sizeGame int, wrongLimit int) 
-}
 
-type MyDatabase struct {
-    Redis redis.RedisClient
-}
-
-// Declare 10 game
+var redisDb redis.RedisDatabase
 
 type GameItem struct {
-	ID         int     `json:"_id"`
-	Game       string  `json:"game"`
+	ID         int    `json:"_id"`
+	Game       string `json:"game"`
 	WrongLimit int    `json:"wrongLimit"`
 }
 
@@ -42,11 +30,8 @@ func CreateGameHelper(sizeGame int) []string {
 	return res
 }
 
-func (r * MyDatabase)CreateGames( sizeGame int, wrongLimit int) {
+func CreateGames(sizeGame int, wrongLimit int) {
 	arr := CreateGameHelper(sizeGame)
-	// seed the random number generator
-
-	// print the number
 	items := make([]GameItem, len(arr))
 	for i, v := range arr {
 		// generate a random 8-digit number
@@ -54,11 +39,10 @@ func (r * MyDatabase)CreateGames( sizeGame int, wrongLimit int) {
 		max := 99999999
 		randId := shareFunc.CreateRandomNumber(min, max)
 		items[i] = GameItem{ID: randId, Game: v, WrongLimit: wrongLimit}
-		// Add Game -----
 		val, _ := json.Marshal(items[i])
-		_, err := r.Redis.Set("game:"+strconv.Itoa(randId),val, 24*7*time.Hour).Result()
+		_, err := redisDb.Set("game:"+strconv.Itoa(randId), val, 24*7*time.Hour).Result()
 		if err != nil {
-			panic(err)
+			fmt.Println("Hello", err)
 		}
 	}
 }
@@ -73,7 +57,6 @@ func (r * MyDatabase)CreateGames( sizeGame int, wrongLimit int) {
 // func GetListGame(client *redis.Client) (int, []*pb.Game) {
 
 // 	keys, _ := database.Keys(client, "game:*")
-
 
 // 	var Games []*pb.Game
 // 	for _, key := range keys {

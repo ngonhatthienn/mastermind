@@ -22,6 +22,7 @@ const (
 	Services_CreateGame_FullMethodName     = "/helloworld.Services/CreateGame"
 	Services_ListGame_FullMethodName       = "/helloworld.Services/ListGame"
 	Services_GetCurrent_FullMethodName     = "/helloworld.Services/GetCurrent"
+	Services_PickGame_FullMethodName       = "/helloworld.Services/PickGame"
 	Services_PlayGame_FullMethodName       = "/helloworld.Services/PlayGame"
 	Services_UpdateGame_FullMethodName     = "/helloworld.Services/UpdateGame"
 	Services_HintGame_FullMethodName       = "/helloworld.Services/HintGame"
@@ -37,6 +38,7 @@ type ServicesClient interface {
 	CreateGame(ctx context.Context, in *CreateGameRequest, opts ...grpc.CallOption) (*CreateGameReply, error)
 	ListGame(ctx context.Context, in *ListGameRequest, opts ...grpc.CallOption) (*ListGameReply, error)
 	GetCurrent(ctx context.Context, in *CurrentGameRequest, opts ...grpc.CallOption) (*CurrentGameReply, error)
+	PickGame(ctx context.Context, in *PickGameRequest, opts ...grpc.CallOption) (*PickGameReply, error)
 	PlayGame(ctx context.Context, in *PlayGameRequest, opts ...grpc.CallOption) (*PlayGameReply, error)
 	UpdateGame(ctx context.Context, in *UpdateGameRequest, opts ...grpc.CallOption) (*UpdateGameReply, error)
 	HintGame(ctx context.Context, in *HintGameRequest, opts ...grpc.CallOption) (*HintGameReply, error)
@@ -74,6 +76,15 @@ func (c *servicesClient) ListGame(ctx context.Context, in *ListGameRequest, opts
 func (c *servicesClient) GetCurrent(ctx context.Context, in *CurrentGameRequest, opts ...grpc.CallOption) (*CurrentGameReply, error) {
 	out := new(CurrentGameReply)
 	err := c.cc.Invoke(ctx, Services_GetCurrent_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *servicesClient) PickGame(ctx context.Context, in *PickGameRequest, opts ...grpc.CallOption) (*PickGameReply, error) {
+	out := new(PickGameReply)
+	err := c.cc.Invoke(ctx, Services_PickGame_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +152,7 @@ type ServicesServer interface {
 	CreateGame(context.Context, *CreateGameRequest) (*CreateGameReply, error)
 	ListGame(context.Context, *ListGameRequest) (*ListGameReply, error)
 	GetCurrent(context.Context, *CurrentGameRequest) (*CurrentGameReply, error)
+	PickGame(context.Context, *PickGameRequest) (*PickGameReply, error)
 	PlayGame(context.Context, *PlayGameRequest) (*PlayGameReply, error)
 	UpdateGame(context.Context, *UpdateGameRequest) (*UpdateGameReply, error)
 	HintGame(context.Context, *HintGameRequest) (*HintGameReply, error)
@@ -162,6 +174,9 @@ func (UnimplementedServicesServer) ListGame(context.Context, *ListGameRequest) (
 }
 func (UnimplementedServicesServer) GetCurrent(context.Context, *CurrentGameRequest) (*CurrentGameReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCurrent not implemented")
+}
+func (UnimplementedServicesServer) PickGame(context.Context, *PickGameRequest) (*PickGameReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PickGame not implemented")
 }
 func (UnimplementedServicesServer) PlayGame(context.Context, *PlayGameRequest) (*PlayGameReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlayGame not implemented")
@@ -244,6 +259,24 @@ func _Services_GetCurrent_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ServicesServer).GetCurrent(ctx, req.(*CurrentGameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Services_PickGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PickGameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServicesServer).PickGame(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Services_PickGame_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServicesServer).PickGame(ctx, req.(*PickGameRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -374,6 +407,10 @@ var Services_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCurrent",
 			Handler:    _Services_GetCurrent_Handler,
+		},
+		{
+			MethodName: "PickGame",
+			Handler:    _Services_PickGame_Handler,
 		},
 		{
 			MethodName: "PlayGame",

@@ -10,15 +10,14 @@ import (
 	"strconv"
 	"time"
 
-	gameApp "intern2023/app"
+	"intern2023/app"
 	"intern2023/database"
-	game "intern2023/handler/Game"
-	leaderboard "intern2023/handler/Leaderboard"
-	session "intern2023/handler/Session"
-	user "intern2023/handler/User"
+	"intern2023/handler/Game"
+	"intern2023/handler/Leaderboard"
+	"intern2023/handler/Session"
+	"intern2023/handler/User"
 	shareFunc "intern2023/share"
 
-	// "github.com/golobby/dotenv"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -36,45 +35,84 @@ func NewServer() *server {
 
 func (s *server) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (*pb.CreateGameReply, error) {
 	client, _ := database.CreateRedisDatabase()
-	game.CreateGames(client, 10, int(in.WrongLimit))
-	return &pb.CreateGameReply{Message: "Create game success!!!"}, nil
+	game.CreateGames(client, 10, int(in.GuessLimit))
+
+	return &pb.CreateGameReply{Code: 200, Message: "Create game success!!!"}, nil
 }
 
 // List Game
 func (s *server) ListGame(ctx context.Context, in *pb.ListGameRequest) (*pb.ListGameReply, error) {
 	client, _ := database.CreateRedisDatabase()
-
 	length, Games := game.GetListGame(client)
-	return &pb.ListGameReply{Length: int32(length), Games: Games}, nil
+	if length == 0 {
+		game.CreateGames(client, 10, 30)
+		length, Games = game.GetListGame(client)
+	}
+	return &pb.ListGameReply{Code: 200, Length: int32(length), Games: Games}, nil
 }
 
 func (s *server) GetCurrent(ctx context.Context, in *pb.CurrentGameRequest) (*pb.CurrentGameReply, error) {
 	client, _ := database.CreateRedisDatabase()
+	// Check exist user
+	IdUser := int(in.IdUser)
+	if user.CheckExistUser(client, IdUser) == false {
+		status := shareFunc.GenerateStatus(404, "User")
+		return &pb.CurrentGameReply{Code: status.Code, Message: status.Message}, nil
+	}
 	_, IdGame := session.CreateUserSession(client, in.IdUser)
 	Game := game.GetGameValue(client, IdGame)
-	GameReply := pb.GameReply{XId: Game.XId, WrongLimit: Game.WrongLimit}
-	return &pb.CurrentGameReply{Game: &GameReply}, nil
+	// GameReply := pb.GameReply{XId: Game.XId, GuessLimit: Game.GuessLimit}
+	GameReply := pb.GameReply{XId: int32(Game.ID), GuessLimit: int32(Game.GuessLimit)}
+
+	status := shareFunc.GenerateStatus(200, "Get current")
+	return &pb.CurrentGameReply{Code: status.Code, Message: status.Message, Game: &GameReply}, nil
+}
+
+func (s *server) PickGame(ctx context.Context, in *pb.PickGameRequest) (*pb.PickGameReply, error) {
+	client, _ := database.CreateRedisDatabase()
+	// Check exist user
+	IdUser := int(in.IdUser)
+	if user.CheckExistUser(client, IdUser) == false {
+		status := shareFunc.GenerateStatus(404, "User")
+		return &pb.PickGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	// Check exist game
+	IdGame := int(in.IdGame)
+	if game.CheckExistGame(client, IdGame) == false {
+		status := shareFunc.GenerateStatus(404, "Game")
+		return &pb.PickGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	// Handle pick game
+	session.CreateSessionWithId(client, in.IdUser, in.IdGame)
+	Game := game.GetGameValue(client, int(in.IdGame))
+	// GameReply := pb.GameReply{XId: Game.XId, GuessLimit: Game.GuessLimit}
+	GameReply := pb.GameReply{XId: int32(Game.ID), GuessLimit: int32(Game.GuessLimit)}
+	status := shareFunc.GenerateStatus(200, "Pick game")
+
+	return &pb.PickGameReply{Code: status.Code, Message: status.Message, Game: &GameReply}, nil
 }
 
 // Update Game
 func (s *server) UpdateGame(ctx context.Context, in *pb.UpdateGameRequest) (*pb.UpdateGameReply, error) {
 	client, _ := database.CreateRedisDatabase()
-	game.UpdateGame(client, int(in.WrongLimit))
+	game.UpdateGame(client, int(in.GuessLimit))
 	return &pb.UpdateGameReply{Message: "Update Game Success"}, nil
 }
 
 // Play Game
 func (s *server) PlayGame(ctx context.Context, in *pb.PlayGameRequest) (*pb.PlayGameReply, error) {
-	// Get Game by key
 	client, _ := database.CreateRedisDatabase()
 
 	IdUser := int(in.IdUser)
+	if user.CheckExistUser(client, IdUser) == false {
+		status := shareFunc.GenerateStatus(404, "User")
+		return &pb.PlayGameReply{Code: status.Code, Message: status.Message}, nil
+	}
 	IdUserString := strconv.Itoa(IdUser)
 
-	getSessions := "session:" + IdUserString + "*"
-	keySessions := database.Scan(client, getSessions)
-
-
+	// Check Exist session or not
+	getSessions := "session:" + IdUserString + ":*"
+	keySessions, _ := client.Keys(context.Background(), getSessions).Result()
 	var keySession string
 	if len(keySessions) == 0 {
 		_, IdGame := session.CreateUserSession(client, in.IdUser)
@@ -82,19 +120,22 @@ func (s *server) PlayGame(ctx context.Context, in *pb.PlayGameRequest) (*pb.Play
 	} else {
 		keySession = keySessions[0]
 	}
-	
-	// Update history when play
 
-	guessLeftString, _ := database.HGet(client, keySession, "guessLeft")
-	guessLeft, _ := strconv.Atoi(guessLeftString)
+	// Update history when play
+	checkHistory := time.Now()
+
+	isWin, _ := client.HGet(context.Background(), keySession, "isWin").Bool()
+	if isWin {
+		return &pb.PlayGameReply{Message: "You'd already won, please get another game"}, nil
+	}
+	guessLeft, _ := client.HGet(context.Background(), keySession, "guessLeft").Int()
+
 	if guessLeft == 0 {
 		return &pb.PlayGameReply{Message: "You lose!!!"}, nil
 	} else {
 		guessLeft--
-		guessLeftString = strconv.Itoa(guessLeft)
-		database.HSet(client, keySession, "guessLeft", guessLeft)
+		client.HSet(context.Background(), keySession, "guessLeft", guessLeft)
 	}
-	
 
 	IdGameString := shareFunc.GetKeyElement(keySession, 2)
 	IdGame, _ := strconv.Atoi(IdGameString)
@@ -102,51 +143,76 @@ func (s *server) PlayGame(ctx context.Context, in *pb.PlayGameRequest) (*pb.Play
 
 	rightNumber, rightPosition := gameApp.OutputGame(in.UserGuess, getGameValue.Game)
 
-	
+	checkHistory1 := time.Since(checkHistory)
+	fmt.Println("Update history when play", checkHistory1.Milliseconds())
 
+	// If user win this game
 	if rightNumber == rightPosition && rightNumber == 5 {
-		database.HSet(client, keySession, "isWin", true)
+		client.HSet(context.Background(), keySession, "isWin", true)
 
 		// Handle Time
 
-		timeStart, _ := database.HGet_int64(client, keySession, "timeStart")
+		timeStart, _ := client.HGet(context.Background(), keySession, "timeStart").Int64()
 		savedTime := time.Unix(timeStart, 0)
 
 		diffInSeconds := 5000 - time.Now().Sub(savedTime).Seconds()
 
 		// Get right and pos
-		right, _ := database.HGet(client, keySession, "sumRight")
-		pos, _ := database.HGet(client, keySession, "sumPos")
-		rightInt, _ := strconv.Atoi(right)
-		posInt, _ := strconv.Atoi(pos)
+		right, _ := client.HGet(context.Background(), keySession, "sumRight").Int()
+		pos, _ := client.HGet(context.Background(), keySession, "sumPos").Int()
 
-		score := int(diffInSeconds) + guessLeft*100 + (rightInt+posInt)*2
-		fmt.Println(IdUserString, "Difference Time", diffInSeconds)
+		score := int(diffInSeconds) + guessLeft*100 + (right+pos)*2
 		_ = leaderboard.AddScore(client, IdUserString, IdGameString, int64(score))
 
-		return &pb.PlayGameReply{RightNumber: int32(rightNumber), RightPosition: int32(rightPosition), Message: "You win!!!"}, nil
+		return &pb.PlayGameReply{Code: 200, Message: "You win!!!"}, nil
 	}
+	check := time.Now()
+
 	var listHistory []*pb.ListHistory
 	listHistory, _ = session.PushAndGetHistory(client, keySession, in.UserGuess, int32(rightNumber), int32(rightPosition))
 
-	return &pb.PlayGameReply{RightNumber: int32(rightNumber), RightPosition: int32(rightPosition), Message: "Try your best !!!",GuessesLeft: guessLeftString, OldResult: listHistory}, nil
+	check1 := time.Since(check)
+	fmt.Println("Time check PushAndGetHistory", check1.Milliseconds())
+
+	return &pb.PlayGameReply{Code: 200, Message: "Try your best !!!", GuessesLeft: int32(guessLeft), Result: listHistory}, nil
 }
 
 func (s *server) HintGame(ctx context.Context, in *pb.HintGameRequest) (*pb.HintGameReply, error) {
 	client, _ := database.CreateRedisDatabase()
+	// Check exist user
+	IdUser := int(in.IdUser)
+	if user.CheckExistUser(client, IdUser) == false {
+		return &pb.HintGameReply{Code: 404}, nil
+	}
 
 	keySessionPattern := "session:" + strconv.Itoa(int(in.IdUser)) + ":*"
 
 	keySessions, _ := database.Keys(client, keySessionPattern)
+	// The session of this user is not exists or expired
+	if len(keySessions) == 0 {
+		return &pb.HintGameReply{Code: 404}, nil
+	}
 
 	IdGame := shareFunc.GetKeyElement(keySessions[0], 2)
 	key := "game:" + IdGame
 
 	val, _ := database.Get(client, key)
-	var Result *pb.Game
+
+	// The game in this session is not exists or expired
+	if val == "" {
+		return &pb.HintGameReply{Code: 404}, nil
+	}
+	// var Result *pb.Game
+	var Result game.GameItem
+
 	_ = json.Unmarshal([]byte(val), &Result)
-	res := game.GenerateHint(Result.Game, in.Type)
-	return &pb.HintGameReply{GameHint: res}, nil
+
+	res, isSuccess := game.GenerateHint(Result.Game, in.Type)
+	code := int32(200)
+	if !isSuccess {
+		code = 400
+	}
+	return &pb.HintGameReply{Code: code, GameHint: res}, nil
 }
 
 func (s *server) CreateUser(ctx context.Context, in *pb.CreateUserRequest) (*pb.CreateUserReply, error) {
@@ -157,31 +223,30 @@ func (s *server) CreateUser(ctx context.Context, in *pb.CreateUserRequest) (*pb.
 
 func (s *server) GetListUser(ctx context.Context, in *pb.ListUserRequest) (*pb.ListUserReply, error) {
 	client, _ := database.CreateRedisDatabase()
-	Users := user.GetListUser(client)
-	return &pb.ListUserReply{Length: int32(len(Users)), Users: Users}, nil
+
+	Length, Users := user.GetListUser(client)
+	return &pb.ListUserReply{Length: int32(Length), Users: Users}, nil
 }
 
 func (s *server) GetLeaderBoard(ctx context.Context, in *pb.LeaderBoardRequest) (*pb.LeaderBoardReply, error) {
 	client, _ := database.CreateRedisDatabase()
+	// Check exist game
+	IdGame := int(in.IdGame)
+	if game.CheckExistGame(client, IdGame) == false {
+		return &pb.LeaderBoardReply{Code: 404}, nil
+	}
 	leaderboardData, _ := leaderboard.GetLeaderboard(client, strconv.Itoa(int(in.IdGame)), in.Size)
 	return &pb.LeaderBoardReply{Data: leaderboardData}, nil
 }
 
 func main() {
-	// Redis connect
-	// client, _ := database.CreateRedisDatabase()
-
-	// keys, err := database.Keys(client, "game:*")
-	// fmt.Println(len(keys))
-	// if len(keys) == 0 {
-	// 	game.CreateGames(client, 10, 10)
-	// }
-	// Load environment variables from .env file
 	// Create a listener on TCP port
 	lis, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatalln("Failed to listen:", err)
 	}
+	// client, _ := database.CreateRedisDatabase()
+	// game.DeleteGames(client)
 
 	// Create a gRPC server object
 	s := grpc.NewServer()

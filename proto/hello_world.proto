@@ -25,6 +25,12 @@ service Services {
       body: "*"
     };
   }
+  rpc PickGame(PickGameRequest) returns (PickGameReply) {
+    option (google.api.http) = {
+      post: "/v1/game/pick"
+      body: "*"
+    };
+  }
   rpc PlayGame(PlayGameRequest) returns (PlayGameReply) {
     option (google.api.http) = {
       post: "/v1/game/play"
@@ -63,39 +69,44 @@ service Services {
 }
 
 //  CREATEGAME
+message Game {
+  int32 _id = 1;
+  // string game = 2;
+  int32 guessLimit = 3;
+}
 message CreateGameRequest {
-  int32 wrongLimit = 1;
+  int32 guessLimit = 1;
 }
 message CreateGameReply {
-  string message = 1;
+  int32 code = 1;
+  string message = 2;
 }
 
 // LISTGAME
 message ListGameRequest {
   string name = 1;
 }
-message Game {
-  int32 _id = 1;
-  string game = 2;
-  int32 wrongLimit = 3;
-}
 // The response message containing the greetings
 message ListGameReply {
-  int32 Length = 1;
-  repeated Game games = 2;
+  int32 code = 1;
+  string message = 2;
+  int32 Length = 3;
+  repeated Game games = 4;
 }
 
 // GETCURRENT
 message GameReply {
   int32 _id = 1;
-  int32 wrongLimit = 3;
+  int32 guessLimit = 3;
 }
 message CurrentGameRequest {
   int32 idUser = 1;
 }
 // The response message containing the greetings
 message CurrentGameReply {
-  GameReply game = 1;
+  int32 code = 1;
+  string message = 2;
+  GameReply game = 3;
 }
 
 // PLAYGAME
@@ -111,15 +122,14 @@ message PlayGameRequest {
 
 // The response message containing the greetings
 message PlayGameReply {
-  int32 rightNumber = 1;
-  int32 rightPosition = 2;
-  string guessesLeft = 3;
-  string message = 4;
-  repeated ListHistory oldResult = 5;
+  int32 code = 1;
+  string message = 2;
+  int32 guessesLeft = 3;
+  repeated ListHistory Result = 6;
 }
 // UPDATE
 message UpdateGameRequest {
-  int32 wrongLimit = 1;
+  int32 guessLimit = 1;
 
 }
 // The response message containing the greetings
@@ -135,18 +145,27 @@ message HintGameRequest {
 }
 // The response message containing the greetings
 message HintGameReply {
-  // int32 idGame = 1;
-  string gameHint = 2;
+  int32 code = 1;
+  string message = 2;
+  string gameHint = 3;
 }
 
+// PICKGAME
+message PickGameRequest{
+  int32 idUser = 1;
+  int32 idGame = 2;
 
+}
+message PickGameReply{
+  int32 code = 1;
+  string message = 2;
+  GameReply game = 3;
+}
 // USER
 
 message CreateUserRequest {
   string name = 1;
   string password = 2;
-  // int32 wrongTimes = 2;
-  // GameCurrentUser gameCurrent = 5;
 }
 message CreateUserReply {
   int32 _id = 1;
@@ -177,5 +196,7 @@ message LeaderBoardRequest {
 
 }
 message LeaderBoardReply{
-  repeated LeaderBoardData data = 1;
+  int32 code = 1;
+  string message = 2;
+  repeated LeaderBoardData data = 3;
 }

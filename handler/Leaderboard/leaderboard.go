@@ -10,10 +10,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// type UserScore struct {
-// 	UserId string
-// 	Score  int64
-// }
+func AllLeaderBoardPatterns(IdUser string) string {
+	return "leaderboard:*"
+}
+
+func LeaderBoardPattern(IdGame string) string {
+	return "leaderboard:" + IdGame
+}
 
 func AddScore(client *redis.Client, userId string, IdGame string, score int64) error {
 	leaderBoardKey := "leaderboard:" + IdGame

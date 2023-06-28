@@ -1,4 +1,4 @@
-package shareFunc
+package share
 import (
 	"math/rand"
 	"time"

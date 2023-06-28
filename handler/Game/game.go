@@ -1,29 +1,44 @@
 package game
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"time"
-	
-
 	"github.com/redis/go-redis/v9"
 
-	"intern2023/app"
-	"intern2023/share"
+	gameApp "intern2023/app"
 	"intern2023/database"
 	pb "intern2023/pb"
-
+	shareFunc "intern2023/share"
 )
 
 // Declare 10 game
 
 type GameItem struct {
-	ID         int     `json:"_id"`
-	Game       string  `json:"game"`
-	WrongLimit int    `json:"wrongLimit"`
+	ID         int    `json:"_id"`
+	Game       string `json:"game"`
+	GuessLimit int    `json:"guessLimit"`
 }
 
+func AllGamePatterns() string {
+	return "game:*"
+}
+
+func GamePattern(IdGame string) string {
+	return "game:" + IdGame
+}
+
+func CheckExistGame(client *redis.Client, IdGame int) bool {
+	IdGameString := strconv.Itoa(IdGame)
+	valGame, _ := client.Get(context.Background(), GamePattern(IdGameString)).Result()
+	if valGame == "" {
+		return false
+	}
+	return true
+}
+
+// Help for Create Game
 func CreateGameHelper(sizeGame int) []string {
 	res := []string{}
 	for i := 1; i <= sizeGame; i++ {
@@ -35,52 +50,60 @@ func CreateGameHelper(sizeGame int) []string {
 	return res
 }
 
-func CreateGames(client *redis.Client, sizeGame int, wrongLimit int) {
+// for Create Game
+// func CreateGamesMongo(client *mongo.Client) {
+
+// }
+func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
 	arr := CreateGameHelper(sizeGame)
 	// seed the random number generator
-
-	// print the number
 	items := make([]GameItem, len(arr))
 	for i, v := range arr {
 		// generate a random 8-digit number
 		min := 10000000
 		max := 99999999
 		randId := shareFunc.CreateRandomNumber(min, max)
-		items[i] = GameItem{ID: randId, Game: v, WrongLimit: wrongLimit}
-		// Add Game -----
+		items[i] = GameItem{ID: randId, Game: v, GuessLimit: guessLimit}
 		val, _ := json.Marshal(items[i])
-		_, err := database.Set(client, "game:"+strconv.Itoa(randId), val, 24*7*time.Hour)
+		_, err := database.Set(client, "game:"+strconv.Itoa(randId), val, 24*7*time.Hour) //
 		if err != nil {
 			panic(err)
 		}
 	}
 }
 
-func GetGameValue(client *redis.Client, IdGame int) *pb.Game {
-	var Game *pb.Game
+// to get data of game
+func GetGameValue(client *redis.Client, IdGame int) GameItem {
+	// var Game *pb.Game
+	var Game GameItem
 	getGameString, _ := database.Get(client, "game:"+strconv.Itoa(IdGame))
 	_ = json.Unmarshal([]byte(getGameString), &Game)
 	return Game
 }
 
+// to get list of games
 func GetListGame(client *redis.Client) (int, []*pb.Game) {
+	keys, _ := client.Keys(context.Background(), "game:*").Result() 
 
-	keys, _ := database.Keys(client, "game:*")
-
+	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
+		for _, key := range keys {
+			pipe.Get(context.Background(), key).Result()
+		}
+		return nil
+	})
 
 	var Games []*pb.Game
-	for _, key := range keys {
-		val, _ := database.Get(client, key)
+    for _, cmd := range cmdS {
+        val := cmd.(*redis.StringCmd).Val()
 		var data *pb.Game
-		err := json.Unmarshal([]byte(val), &data)
-		if err != nil {
-			// Handle the error here
-		}
+		_ = json.Unmarshal([]byte(val), &data)
 		Games = append(Games, data)
-	}
+    }
+
 	return len(Games), Games
 }
 
+// to update list of games
 func UpdateGame(client *redis.Client, wrongLimit int) {
 	gameKeys, _ := database.Keys(client, "game:*")
 	for _, gameKey := range gameKeys {
@@ -92,6 +115,17 @@ func UpdateGame(client *redis.Client, wrongLimit int) {
 			CreateGames(client, 1, wrongLimit)
 		}
 	}
+}
+
+func DeleteGames(client *redis.Client) (int, []*pb.Game) {
+	// pipe := client.Pipeline()
+	keys, _ := client.Keys(context.Background(), "game:*").Result() //
+
+	var Games []*pb.Game
+	for _, key := range keys {
+		_, _ = client.Del(context.Background(), key).Result()
+	}
+	return len(Games), Games
 }
 
 func haveResults(result []int) []int {
@@ -107,7 +141,7 @@ func haveResults(result []int) []int {
 	return res
 }
 
-func GenerateHint(result string, types string) string {
+func GenerateHint(result string, types string) (string, bool) {
 	resultBytes := []byte(result)
 	switch types {
 	case "3begin":
@@ -133,11 +167,13 @@ func GenerateHint(result string, types string) string {
 				i--
 			}
 		}
-		fmt.Println(randoms)
 		for i := 0; i < len(randoms); i++ {
 			resultBytes[randoms[i]] = '*'
 		}
 		result = string(resultBytes)
 	}
-	return result
+	if result == "" {
+		return "", false
+	}
+	return result, true
 }
