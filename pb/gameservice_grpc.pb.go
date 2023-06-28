@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.23.2
-// source: hello_world.proto
+// source: gameservice.proto
 
 package proto
 
@@ -19,17 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Services_InitGame_FullMethodName       = "/helloworld.Services/InitGame"
-	Services_CreateGame_FullMethodName     = "/helloworld.Services/CreateGame"
-	Services_ListGame_FullMethodName       = "/helloworld.Services/ListGame"
-	Services_GetCurrent_FullMethodName     = "/helloworld.Services/GetCurrent"
-	Services_PickGame_FullMethodName       = "/helloworld.Services/PickGame"
-	Services_PlayGame_FullMethodName       = "/helloworld.Services/PlayGame"
-	Services_UpdateGame_FullMethodName     = "/helloworld.Services/UpdateGame"
-	Services_HintGame_FullMethodName       = "/helloworld.Services/HintGame"
-	Services_CreateUser_FullMethodName     = "/helloworld.Services/CreateUser"
-	Services_GetListUser_FullMethodName    = "/helloworld.Services/GetListUser"
-	Services_GetLeaderBoard_FullMethodName = "/helloworld.Services/GetLeaderBoard"
+	Services_InitGame_FullMethodName       = "/gameservice.Services/InitGame"
+	Services_CreateGame_FullMethodName     = "/gameservice.Services/CreateGame"
+	Services_ListGame_FullMethodName       = "/gameservice.Services/ListGame"
+	Services_GetCurrent_FullMethodName     = "/gameservice.Services/GetCurrent"
+	Services_PickGame_FullMethodName       = "/gameservice.Services/PickGame"
+	Services_PlayGame_FullMethodName       = "/gameservice.Services/PlayGame"
+	Services_UpdateGame_FullMethodName     = "/gameservice.Services/UpdateGame"
+	Services_HintGame_FullMethodName       = "/gameservice.Services/HintGame"
+	Services_CreateUser_FullMethodName     = "/gameservice.Services/CreateUser"
+	Services_GetListUser_FullMethodName    = "/gameservice.Services/GetListUser"
+	Services_GetLeaderBoard_FullMethodName = "/gameservice.Services/GetLeaderBoard"
 )
 
 // ServicesClient is the client API for Services service.
@@ -426,7 +426,7 @@ func _Services_GetLeaderBoard_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Services_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "helloworld.Services",
+	ServiceName: "gameservice.Services",
 	HandlerType: (*ServicesServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -475,5 +475,5 @@ var Services_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "hello_world.proto",
+	Metadata: "gameservice.proto",
 }
