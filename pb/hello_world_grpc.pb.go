@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
+	Services_InitGame_FullMethodName       = "/helloworld.Services/InitGame"
 	Services_CreateGame_FullMethodName     = "/helloworld.Services/CreateGame"
 	Services_ListGame_FullMethodName       = "/helloworld.Services/ListGame"
 	Services_GetCurrent_FullMethodName     = "/helloworld.Services/GetCurrent"
@@ -35,6 +36,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ServicesClient interface {
+	InitGame(ctx context.Context, in *InitGameRequest, opts ...grpc.CallOption) (*InitGameReply, error)
 	CreateGame(ctx context.Context, in *CreateGameRequest, opts ...grpc.CallOption) (*CreateGameReply, error)
 	ListGame(ctx context.Context, in *ListGameRequest, opts ...grpc.CallOption) (*ListGameReply, error)
 	GetCurrent(ctx context.Context, in *CurrentGameRequest, opts ...grpc.CallOption) (*CurrentGameReply, error)
@@ -53,6 +55,15 @@ type servicesClient struct {
 
 func NewServicesClient(cc grpc.ClientConnInterface) ServicesClient {
 	return &servicesClient{cc}
+}
+
+func (c *servicesClient) InitGame(ctx context.Context, in *InitGameRequest, opts ...grpc.CallOption) (*InitGameReply, error) {
+	out := new(InitGameReply)
+	err := c.cc.Invoke(ctx, Services_InitGame_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *servicesClient) CreateGame(ctx context.Context, in *CreateGameRequest, opts ...grpc.CallOption) (*CreateGameReply, error) {
@@ -149,6 +160,7 @@ func (c *servicesClient) GetLeaderBoard(ctx context.Context, in *LeaderBoardRequ
 // All implementations must embed UnimplementedServicesServer
 // for forward compatibility
 type ServicesServer interface {
+	InitGame(context.Context, *InitGameRequest) (*InitGameReply, error)
 	CreateGame(context.Context, *CreateGameRequest) (*CreateGameReply, error)
 	ListGame(context.Context, *ListGameRequest) (*ListGameReply, error)
 	GetCurrent(context.Context, *CurrentGameRequest) (*CurrentGameReply, error)
@@ -166,6 +178,9 @@ type ServicesServer interface {
 type UnimplementedServicesServer struct {
 }
 
+func (UnimplementedServicesServer) InitGame(context.Context, *InitGameRequest) (*InitGameReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InitGame not implemented")
+}
 func (UnimplementedServicesServer) CreateGame(context.Context, *CreateGameRequest) (*CreateGameReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateGame not implemented")
 }
@@ -207,6 +222,24 @@ type UnsafeServicesServer interface {
 
 func RegisterServicesServer(s grpc.ServiceRegistrar, srv ServicesServer) {
 	s.RegisterService(&Services_ServiceDesc, srv)
+}
+
+func _Services_InitGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InitGameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServicesServer).InitGame(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Services_InitGame_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServicesServer).InitGame(ctx, req.(*InitGameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Services_CreateGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -396,6 +429,10 @@ var Services_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "helloworld.Services",
 	HandlerType: (*ServicesServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "InitGame",
+			Handler:    _Services_InitGame_Handler,
+		},
 		{
 			MethodName: "CreateGame",
 			Handler:    _Services_CreateGame_Handler,

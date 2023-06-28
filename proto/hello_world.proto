@@ -8,6 +8,12 @@ import "google/api/annotations.proto";
 
 // Here is the overall greeting service definition where we define all our endpoints
 service Services {
+  rpc InitGame(InitGameRequest) returns (InitGameReply) {
+    option (google.api.http) = {
+      post: "/v1/game/init"
+      body: "*"
+    };
+  }
   rpc CreateGame(CreateGameRequest) returns (CreateGameReply) {
     option (google.api.http) = {
       post: "/v1/game/create"
@@ -67,12 +73,18 @@ service Services {
     };
   }
 }
-
+// INIT GAMES IN MONGODB
+message InitGameRequest {
+  int32 gameSize = 1;
+}
+message InitGameReply {
+  int32 code = 1;
+  string message = 2;
+}
 //  CREATEGAME
 message Game {
   int32 _id = 1;
-  // string game = 2;
-  int32 guessLimit = 3;
+  int32 guessLimit = 2;
 }
 message CreateGameRequest {
   int32 guessLimit = 1;

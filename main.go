@@ -10,12 +10,12 @@ import (
 	"strconv"
 	"time"
 
-	"intern2023/app"
+	gameApp "intern2023/app"
 	"intern2023/database"
-	"intern2023/handler/Game"
-	"intern2023/handler/Leaderboard"
-	"intern2023/handler/Session"
-	"intern2023/handler/User"
+	game "intern2023/handler/Game"
+	leaderboard "intern2023/handler/Leaderboard"
+	session "intern2023/handler/Session"
+	user "intern2023/handler/User"
 	shareFunc "intern2023/share"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -33,6 +33,14 @@ func NewServer() *server {
 	return &server{}
 }
 
+// Init game in Mongo database
+func (s *server) InitGame(ctx context.Context, in *pb.InitGameRequest) (*pb.InitGameReply, error) {
+	client := database.CreateMongoDBConnection()
+	game.CreateGamesMongo(client, int(in.GameSize))
+	return &pb.InitGameReply{Code: 200, Message: "Init game success!!!"}, nil
+}
+
+// Create game in Redis database
 func (s *server) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (*pb.CreateGameReply, error) {
 	client, _ := database.CreateRedisDatabase()
 	game.CreateGames(client, 10, int(in.GuessLimit))

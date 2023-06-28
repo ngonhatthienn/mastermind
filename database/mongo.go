@@ -33,3 +33,9 @@ func CreateMongoDBColumn() {
 	fmt.Println(gameResult.InsertedID)
 }
 
+func CreateGamesCollection(client *mongo.Client) *mongo.Collection{
+	quickstart := client.Database("quickstart")
+	game := quickstart.Collection("games")
+	return game
+}
+

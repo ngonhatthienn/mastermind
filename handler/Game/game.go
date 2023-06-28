@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"strconv"
 	"time"
+
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	gameApp "intern2023/app"
 	"intern2023/database"
@@ -51,9 +53,25 @@ func CreateGameHelper(sizeGame int) []string {
 }
 
 // for Create Game
-// func CreateGamesMongo(client *mongo.Client) {
+func CreateGamesMongo(client *mongo.Client, sizeGame int) {
+	arr := CreateGameHelper(sizeGame)
+	gameCollection := database.CreateGamesCollection(client)
+	var ui []interface{}
+	for _, v := range arr {
+		// generate a random 8-digit number
+		min := 10000000
+		max := 99999999
+		randId := shareFunc.CreateRandomNumber(min, max)
+		item := GameItem{ID: randId, Game: v}
+		ui = append(ui, item)
 
-// }
+	}
+	_, err := gameCollection.InsertMany(context.Background(), ui)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
 	arr := CreateGameHelper(sizeGame)
 	// seed the random number generator
@@ -83,7 +101,7 @@ func GetGameValue(client *redis.Client, IdGame int) GameItem {
 
 // to get list of games
 func GetListGame(client *redis.Client) (int, []*pb.Game) {
-	keys, _ := client.Keys(context.Background(), "game:*").Result() 
+	keys, _ := client.Keys(context.Background(), "game:*").Result()
 
 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
 		for _, key := range keys {
@@ -93,12 +111,12 @@ func GetListGame(client *redis.Client) (int, []*pb.Game) {
 	})
 
 	var Games []*pb.Game
-    for _, cmd := range cmdS {
-        val := cmd.(*redis.StringCmd).Val()
+	for _, cmd := range cmdS {
+		val := cmd.(*redis.StringCmd).Val()
 		var data *pb.Game
 		_ = json.Unmarshal([]byte(val), &data)
 		Games = append(Games, data)
-    }
+	}
 
 	return len(Games), Games
 }
