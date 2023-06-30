@@ -197,18 +197,21 @@ message ListUserReply{
 }
 
 // LeaderBoard
-message LeaderBoardData {
+message LeaderBoardRank {
   int32 UserId = 1;
   string Score = 2;
 }
 
 message LeaderBoardRequest {
   int32 idGame = 1;
-  int64 size = 2;
-
+  int32 idUser = 2;
+  int64 size = 3;
 }
 message LeaderBoardReply{
   int32 code = 1;
   string message = 2;
-  repeated LeaderBoardData data = 3;
+  repeated LeaderBoardRank ranks = 3;
+  int32 userRank = 4;
+  string userScore = 5;
+
 }

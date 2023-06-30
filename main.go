@@ -243,8 +243,23 @@ func (s *server) GetLeaderBoard(ctx context.Context, in *pb.LeaderBoardRequest) 
 	if game.CheckExistGame(client, IdGame) == false {
 		return &pb.LeaderBoardReply{Code: 404}, nil
 	}
-	leaderboardData, _ := leaderboard.GetLeaderboard(client, strconv.Itoa(int(in.IdGame)), in.Size)
-	return &pb.LeaderBoardReply{Data: leaderboardData}, nil
+	// Check exits user
+	IdUser := int(in.IdUser)
+	if user.CheckExistUser(client, IdUser) == false {
+		status := shareFunc.GenerateStatus(404, "User")
+		return &pb.LeaderBoardReply{Code: status.Code, Message: status.Message}, nil
+	}
+
+	IdUserString := strconv.Itoa(IdUser)
+	leaderboardData, _ := leaderboard.GetLeaderboard(client, strconv.Itoa(IdGame), in.Size, IdUserString)
+	status := shareFunc.GenerateStatus(200, "Get LeaderBoard")
+	UserRank, UserScore := leaderboard.GetUserRank(client, strconv.Itoa(IdGame), strconv.Itoa(IdUser))
+
+	// fmt.Print("status", status)
+	// leaderboardData.Code = status.Code
+	// leaderboardData.Message = status.Message
+
+	return &pb.LeaderBoardReply{Code: status.Code, Message: status.Message, Ranks: leaderboardData, UserRank: UserRank, UserScore: UserScore}, nil
 }
 
 func main() {

@@ -1,9 +1,9 @@
 package leaderboard
 
 import (
-	"fmt"
+	"context"
 	"strconv"
-
+	// "fmt"
 	"intern2023/database"
 	pb "intern2023/pb"
 
@@ -28,23 +28,39 @@ func AddScore(client *redis.Client, userId string, IdGame string, score int64) e
 	return err
 }
 
-func GetLeaderboard(client *redis.Client, IdGame string, size int64) ([]*pb.LeaderBoardData, error) {
+func GetUserRank(client *redis.Client, IdGame string, IdUser string) (int32, string) {
+	ctx := context.Background()
 	leaderboardKey := "leaderboard:" + IdGame
-	results, err := database.ZRevRangeWithScores(client, leaderboardKey, 0, size-1)
+	rank, err := client.ZRevRank(ctx, leaderboardKey, IdUser).Result()
+    if err != nil {
+        // handle error
+    }
+
+    score, err := client.ZScore(ctx, leaderboardKey, IdUser).Result()
+    if err != nil {
+        // handle error
+    }
+	return int32(rank + 1),  strconv.Itoa(int(score))
+}
+
+func GetLeaderboard(client *redis.Client, IdGame string, size int64, IdUser string) ([]*pb.LeaderBoardRank, error) {
+	leaderboardKey := "leaderboard:" + IdGame
+	results, err := client.ZRevRangeWithScores(context.Background(), leaderboardKey, 0, size-1).Result()
 	if err != nil {
 		return nil, err
 	}
-
-	var scores []*pb.LeaderBoardData
+	// var LeaderBoardData *pb.LeaderBoardReply
+	var scores []*pb.LeaderBoardRank
 	for _, result := range results {
 		userId, _ := strconv.Atoi(result.Member.(string))
-		score := &pb.LeaderBoardData{
+		score := &pb.LeaderBoardRank{
 			UserId: int32(userId),
 			Score:  strconv.Itoa(int(result.Score)),
 		}
 		scores = append(scores, score)
 	}
-	fmt.Println(scores)
+	// LeaderBoardData.Ranks = scores
 
+	// LeaderBoardData.UserRank, LeaderBoardData.UserScore = GetUserRank(client, leaderboardKey, IdUser)
 	return scores, nil
 }

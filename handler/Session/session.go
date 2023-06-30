@@ -90,20 +90,15 @@ func CreateSessionWithId(client *redis.Client, IdUser int32, IdGame int32) {
 	}
 	// Create new session
 	IdGameString := strconv.Itoa(int(IdGame))
-
 	// Get guessLimit
 	var game game.GameItem
-	gameData, _ := client.Get(context.Background(), IdGameString).Result()
+	gameData, _ := client.Get(context.Background(), "game:" +IdGameString).Result()
 	_ = json.Unmarshal([]byte(gameData), &game)
+
 	// Set session
 
 	SessionKey := "session:" + IdUserString + ":" + IdGameString
-	// field := "gameplay_0"
-	// playHistory := PlayHistory{
-	// 	UserRequest:   "",
-	// 	RightNumber:   0,
-	// 	RightPosition: 0,
-	// }
+
 
 	// val, _ := json.Marshal(playHistory)
 	timeNow := time.Now().Unix()
