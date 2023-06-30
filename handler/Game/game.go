@@ -3,10 +3,12 @@ package game
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	gameApp "intern2023/app"
@@ -70,6 +72,67 @@ func CreateGamesMongo(client *mongo.Client, sizeGame int) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit int) {
+	gameCollection := database.CreateGamesCollection(mongoClient)
+
+	// Update games that already played
+	keyPattern := "session:*"
+	sessionKeys, _ := database.Keys(redisClient, keyPattern)
+	mp := make(map[string]int)
+
+	for _, sessionKey := range sessionKeys {
+		IdGame := shareFunc.GetKeyElement(sessionKey, 2)
+		fmt.Println("IdGame", IdGame)
+
+		if mp[IdGame] == 1 {
+			continue
+		}
+		mp[IdGame] = 1
+		IdGameInt, _ := strconv.Atoi(IdGame)
+		filter := bson.D{{"id", IdGameInt}}
+		var gameItem GameItem
+		gameCollection.FindOne(context.Background(), filter).Decode(&gameItem)
+		gameItem.GuessLimit = guessLimit
+
+		fmt.Println("Game exist in Session", gameItem)
+		gameData, _ := json.Marshal(gameItem)
+		_ = redisClient.Set(context.Background(), "game:"+IdGame, gameData, 24*7*time.Hour)
+	}
+	gameSize := 10 - len(mp)
+	fmt.Println("gameSize", gameSize)
+
+	filter := bson.A{
+		bson.D{{"$sample", bson.D{{"size", gameSize}}}},
+	}
+	fmt.Println("Hello", filter)
+
+	cursor, err := gameCollection.Aggregate(context.Background(), filter)
+	if err != nil {
+		panic(err)
+	}
+	// Decode the resulting cursor into a slice of Record structs
+	var records []GameItem
+	if err := cursor.All(context.Background(), &records); err != nil {
+		panic(err)
+	}
+	// Set the records into redis
+	for _, record := range records {
+		// fmt.Printf("%s, %s, %d\n", record.ID, record.ID, record.Game)
+		record.GuessLimit = guessLimit
+		gameData, _ := json.Marshal(record)
+		_ = redisClient.Set(context.Background(), "game:"+strconv.Itoa(record.ID), gameData, 24*7*time.Hour)
+	}
+
+	// for _, result := range results {
+	// 	cursor.Decode(&result)
+	// 	output, err := json.MarshalIndent(result, "", "    ")
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	fmt.Printf("%s\n", output)
+	// }
 }
 
 func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {

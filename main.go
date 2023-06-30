@@ -35,8 +35,9 @@ func NewServer() *server {
 
 // Init game in Mongo database
 func (s *server) InitGame(ctx context.Context, in *pb.InitGameRequest) (*pb.InitGameReply, error) {
-	client := database.CreateMongoDBConnection()
-	game.CreateGamesMongo(client, int(in.GameSize))
+	mongoClient := database.CreateMongoDBConnection()
+	redisClient, _ := database.CreateRedisDatabase()
+	game.CacheGame(mongoClient, redisClient, 10)
 	return &pb.InitGameReply{Code: 200, Message: "Init game success!!!"}, nil
 }
 
