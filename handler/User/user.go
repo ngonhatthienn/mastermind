@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"intern2023/database"
 	pb "intern2023/pb"
 	shareFunc "intern2023/share"
 
@@ -37,17 +36,17 @@ func CheckExistUser(client *redis.Client, IdUser int) bool {
 	return true
 }
 
-func CreateUser(client *redis.Client, in *pb.CreateUserRequest) (int32, string) { // in *pb.CreateUserRequest not very okay
+func CreateUser(client *redis.Client, Name string, Password string) int32 { // in *pb.CreateUserRequest not very okay
 
 	min := 10000000
 	max := 99999999
 	XId := shareFunc.CreateRandomNumber(min, max)
-	item := UserItem{ID: int32(XId), Name: in.Name, Password: in.Password}
+	item := UserItem{ID: int32(XId), Name: Name, Password: Password}
 
 	val, _ := json.Marshal(item)
-	_, _ = database.Set(client, "user:"+strconv.Itoa(XId), val, 0)
+	_, _ = client.Set(context.Background(), "user:"+strconv.Itoa(XId), val, 0).Result()
 
-	return item.ID, item.Name
+	return item.ID
 }
 
 func GetListUser(client *redis.Client) (int, []*pb.User)  {

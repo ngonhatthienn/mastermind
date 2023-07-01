@@ -146,7 +146,8 @@ message UpdateGameRequest {
 }
 // The response message containing the greetings
 message UpdateGameReply {
-  string message = 1;
+  int32 code = 1;
+  string message = 2;
 }
 
 
@@ -189,7 +190,7 @@ message ListUserRequest{
 message User {
   int32 _id = 1;
   string name = 2;
-  int32 id_game = 3;//we forget to change password here
+  string Password = 3;//we forget to change password here
 }
 message ListUserReply{
   int32 length = 1;
@@ -215,3 +216,12 @@ message LeaderBoardReply{
   string userScore = 5;
 
 }
+
+//Create User services
+// service UserServices {
+//   rpc GetListUser(ListUserRequest) returns (ListUserReply) {
+//     option (google.api.http) = {
+//       get: "/v1/user/list"
+//     };
+//   }
+// }

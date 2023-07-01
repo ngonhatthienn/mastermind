@@ -7,13 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"intern2023/database"
+	"github.com/redis/go-redis/v9"
+
 	game "intern2023/handler/Game"
 	shareFunc "intern2023/share"
-
 	pb "intern2023/pb"
-
-	"github.com/redis/go-redis/v9"
 )
 
 type PlayHistory struct {
@@ -51,7 +49,7 @@ func CreateUserSession(client *redis.Client, IdUser int32) ([]string, int) {
 		_, _ = client.Del(context.Background(), key).Result()
 	}
 	// Create new session
-	GameKeys, _ := database.Keys(client, "game:*") //
+	GameKeys, _ := client.Keys(context.Background(), "game:*").Result() //
 
 	randNumber := shareFunc.CreateRandomNumber(0, 9)
 	GameKey := GameKeys[randNumber]

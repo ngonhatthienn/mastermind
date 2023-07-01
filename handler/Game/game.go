@@ -79,7 +79,7 @@ func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit 
 
 	// Update games that already played
 	keyPattern := "session:*"
-	sessionKeys, _ := database.Keys(redisClient, keyPattern)
+	sessionKeys, _ := redisClient.Keys(context.Background(), keyPattern).Result()
 	mp := make(map[string]int)
 
 	for _, sessionKey := range sessionKeys {
@@ -146,7 +146,7 @@ func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
 		randId := shareFunc.CreateRandomNumber(min, max)
 		items[i] = GameItem{ID: randId, Game: v, GuessLimit: guessLimit}
 		val, _ := json.Marshal(items[i])
-		_, err := database.Set(client, "game:"+strconv.Itoa(randId), val, 24*7*time.Hour) //
+		_, err := client.Set(context.Background(), "game:"+strconv.Itoa(randId), val, 24*7*time.Hour).Result() //
 		if err != nil {
 			panic(err)
 		}
@@ -157,7 +157,7 @@ func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
 func GetGameValue(client *redis.Client, IdGame int) GameItem {
 	// var Game *pb.Game
 	var Game GameItem
-	getGameString, _ := database.Get(client, "game:"+strconv.Itoa(IdGame))
+	getGameString, _ := client.Get(context.Background(), "game:"+strconv.Itoa(IdGame)).Result()
 	_ = json.Unmarshal([]byte(getGameString), &Game)
 	return Game
 }
@@ -186,13 +186,13 @@ func GetListGame(client *redis.Client) (int, []*pb.Game) {
 
 // to update list of games
 func UpdateGame(client *redis.Client, wrongLimit int) {
-	gameKeys, _ := database.Keys(client, "game:*")
+	gameKeys, _ := client.Keys(context.Background(), "game:*").Result()
 	for _, gameKey := range gameKeys {
 		IdGame := shareFunc.GetKeyElement(gameKey, 1)
 		keyPattern := "session:*:" + IdGame
-		sessionKeys, _ := database.Keys(client, keyPattern)
+		sessionKeys, _ := client.Keys(context.Background(), keyPattern).Result()
 		if len(sessionKeys) == 0 {
-			database.Del(client, gameKey)
+			client.Del(context.Background(), gameKey)
 			CreateGames(client, 1, wrongLimit)
 		}
 	}

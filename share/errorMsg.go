@@ -1,6 +1,6 @@
 package share
 
-type status struct {
+type Status struct {
 	Code    int32
 	Message string
 }
@@ -20,8 +20,8 @@ func statusMessage(errorCode int32) string {
 	}
 }
 
-func GenerateStatus(errorCode int32, Error string) status {
-	stt := status{
+func GenerateStatus(errorCode int32, Error string) Status {
+	stt := Status{
 		Code:    errorCode,
 		Message: Error + " " + statusMessage(errorCode),
 	}

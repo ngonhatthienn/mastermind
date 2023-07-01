@@ -3,8 +3,6 @@ package leaderboard
 import (
 	"context"
 	"strconv"
-	// "fmt"
-	"intern2023/database"
 	pb "intern2023/pb"
 
 	"github.com/redis/go-redis/v9"
@@ -21,10 +19,10 @@ func LeaderBoardPattern(IdGame string) string {
 func AddScore(client *redis.Client, userId string, IdGame string, score int64) error {
 	leaderBoardKey := "leaderboard:" + IdGame
 
-	err := database.ZAdd(client, leaderBoardKey, redis.Z{
+	_,err := client.ZAdd(context.Background(), leaderBoardKey, redis.Z{
 		Score:  float64(score),
 		Member: userId,
-	})
+	}).Result()
 	return err
 }
 
