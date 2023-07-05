@@ -3,23 +3,17 @@ package leaderboard
 import (
 	"context"
 	"strconv"
-	pb "intern2023/pb"
 
 	"github.com/redis/go-redis/v9"
+
+	pb "intern2023/pb"
+	"intern2023/share"
 )
 
-func AllLeaderBoardPatterns(IdUser string) string {
-	return "leaderboard:*"
-}
 
-func LeaderBoardPattern(IdGame string) string {
-	return "leaderboard:" + IdGame
-}
 
 func AddScore(client *redis.Client, userId string, IdGame string, score int64) error {
-	leaderBoardKey := "leaderboard:" + IdGame
-
-	_,err := client.ZAdd(context.Background(), leaderBoardKey, redis.Z{
+	_,err := client.ZAdd(context.Background(), share.LeaderBoardPattern(IdGame), redis.Z{
 		Score:  float64(score),
 		Member: userId,
 	}).Result()
@@ -28,22 +22,20 @@ func AddScore(client *redis.Client, userId string, IdGame string, score int64) e
 
 func GetUserRank(client *redis.Client, IdGame string, IdUser string) (int32, string) {
 	ctx := context.Background()
-	leaderboardKey := "leaderboard:" + IdGame
-	rank, err := client.ZRevRank(ctx, leaderboardKey, IdUser).Result()
+	rank, err := client.ZRevRank(ctx, share.LeaderBoardPattern(IdGame), IdUser).Result()
     if err != nil {
-        // handle error
+        panic(err)
     }
 
-    score, err := client.ZScore(ctx, leaderboardKey, IdUser).Result()
+    score, err := client.ZScore(ctx, share.LeaderBoardPattern(IdGame), IdUser).Result()
     if err != nil {
-        // handle error
+        panic(err)
     }
 	return int32(rank + 1),  strconv.Itoa(int(score))
 }
 
 func GetLeaderboard(client *redis.Client, IdGame string, size int64, IdUser string) ([]*pb.LeaderBoardRank, error) {
-	leaderboardKey := "leaderboard:" + IdGame
-	results, err := client.ZRevRangeWithScores(context.Background(), leaderboardKey, 0, size-1).Result()
+	results, err := client.ZRevRangeWithScores(context.Background(), share.LeaderBoardPattern(IdGame), 0, size-1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +49,5 @@ func GetLeaderboard(client *redis.Client, IdGame string, size int64, IdUser stri
 		}
 		scores = append(scores, score)
 	}
-	// LeaderBoardData.Ranks = scores
-
-	// LeaderBoardData.UserRank, LeaderBoardData.UserScore = GetUserRank(client, leaderboardKey, IdUser)
 	return scores, nil
 }

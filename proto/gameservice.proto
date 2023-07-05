@@ -75,7 +75,7 @@ service Services {
 }
 // INIT GAMES IN MONGODB
 message InitGameRequest {
-  int32 gameSize = 1;
+  int32 guessLimit = 1;
 }
 message InitGameReply {
   int32 code = 1;

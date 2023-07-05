@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"strconv"
 
-	pb "intern2023/pb"
-	shareFunc "intern2023/share"
-
 	"github.com/redis/go-redis/v9"
+
+	pb "intern2023/pb"
+	"intern2023/share"
 )
 
 type UserItem struct {
@@ -17,17 +17,9 @@ type UserItem struct {
 	Password string `json:"password"`
 }
 
-func AllUserPatterns(IdUser string) string {
-	return "user:*"
-}
-
-func UserPattern(IdUser string) string {
-	return "user:" + IdUser
-}
-
 func CheckExistUser(client *redis.Client, IdUser int) bool {
 	IdUserString := strconv.Itoa(IdUser)
-	UserKey := UserPattern(IdUserString)
+	UserKey := share.UserPattern(IdUserString)
 	valUser, _ := client.Get(context.Background(), UserKey).Result()
 	if valUser == "" {
 		return false
@@ -40,35 +32,17 @@ func CreateUser(client *redis.Client, Name string, Password string) int32 { // i
 
 	min := 10000000
 	max := 99999999
-	XId := shareFunc.CreateRandomNumber(min, max)
+	XId := share.CreateRandomNumber(min, max)
 	item := UserItem{ID: int32(XId), Name: Name, Password: Password}
 
 	val, _ := json.Marshal(item)
-	_, _ = client.Set(context.Background(), "user:"+strconv.Itoa(XId), val, 0).Result()
+	_, _ = client.Set(context.Background(), share.UserPattern(strconv.Itoa(XId)), val, 0).Result()
 
 	return item.ID
 }
 
 func GetListUser(client *redis.Client) (int, []*pb.User)  {
-	// var keys []string
-	// var userData []string
-	// keys, _ = database.Keys(client, "user:*")
-
-	// for _, key := range keys {
-	// 	val, _ := database.Get(client, key)
-	// 	userData = append(userData, val)
-	// }
-
-	// var Users []*pb.User
-	// for _, userData := range userData {
-	// 	var data *pb.User
-	// 	err := json.Unmarshal([]byte(userData), &data)
-	// 	if err != nil {
-	// 	}
-	// 	Users = append(Users, data)
-	// }
-	// return Users
-	keys, _ := client.Keys(context.Background(), "user:*").Result() 
+	keys, _ := client.Keys(context.Background(), share.AllUserPattern()).Result() 
 
 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
 		for _, key := range keys {

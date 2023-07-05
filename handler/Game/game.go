@@ -3,7 +3,6 @@ package game
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 	gameApp "intern2023/app"
 	"intern2023/database"
 	pb "intern2023/pb"
-	shareFunc "intern2023/share"
+	"intern2023/share"
 )
 
 // Declare 10 game
@@ -24,18 +23,27 @@ type GameItem struct {
 	Game       string `json:"game"`
 	GuessLimit int    `json:"guessLimit"`
 }
-
-func AllGamePatterns() string {
-	return "game:*"
+type Game struct {
+	ID         int    `bson:"id"`
+	Game       string `bson:"game"`
+	GuessLimit int    `bson:"guessLimit"`
 }
 
-func GamePattern(IdGame string) string {
-	return "game:" + IdGame
+
+
+// Check the database for any games or not
+func CheckAnyGames(client *redis.Client) bool {
+	keyGames, _ := client.Keys(context.Background(), share.AllGamePattern()).Result()
+	if len(keyGames) == 0 {
+		return false
+	}
+	return true
 }
 
+// Check if the database exists game with a given id or not
 func CheckExistGame(client *redis.Client, IdGame int) bool {
 	IdGameString := strconv.Itoa(IdGame)
-	valGame, _ := client.Get(context.Background(), GamePattern(IdGameString)).Result()
+	valGame, _ := client.Get(context.Background(), share.GamePattern(IdGameString)).Result()
 	if valGame == "" {
 		return false
 	}
@@ -47,11 +55,18 @@ func CreateGameHelper(sizeGame int) []string {
 	res := []string{}
 	for i := 1; i <= sizeGame; i++ {
 		randoms := [5]int{}
-		shareFunc.CreateArrRand(&randoms)
+		share.CreateArrRand(&randoms)
 		string := gameApp.ConvertArrString(&randoms)
 		res = append(res, string)
 	}
 	return res
+}
+
+// Check the database for any games or not, if not, generate 10 games
+func CheckAndGenerateGame(mongoClient *mongo.Client, redisClient *redis.Client) {
+	if !CheckAnyGames(redisClient) {
+		CacheGame(mongoClient, redisClient, 30)
+	}
 }
 
 // for Create Game
@@ -63,7 +78,7 @@ func CreateGamesMongo(client *mongo.Client, sizeGame int) {
 		// generate a random 8-digit number
 		min := 10000000
 		max := 99999999
-		randId := shareFunc.CreateRandomNumber(min, max)
+		randId := share.CreateRandomNumber(min, max)
 		item := GameItem{ID: randId, Game: v}
 		ui = append(ui, item)
 
@@ -83,56 +98,51 @@ func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit 
 	mp := make(map[string]int)
 
 	for _, sessionKey := range sessionKeys {
-		IdGame := shareFunc.GetKeyElement(sessionKey, 2)
-		fmt.Println("IdGame", IdGame)
+		IdGame := share.GetKeyElement(sessionKey, 2)
 
 		if mp[IdGame] == 1 {
 			continue
 		}
 		mp[IdGame] = 1
 		IdGameInt, _ := strconv.Atoi(IdGame)
-		filter := bson.D{{"id", IdGameInt}}
+		filter := bson.D{{Key: "id", Value: IdGameInt}}
 		var gameItem GameItem
 		gameCollection.FindOne(context.Background(), filter).Decode(&gameItem)
 		gameItem.GuessLimit = guessLimit
 
-		fmt.Println("Game exist in Session", gameItem)
 		gameData, _ := json.Marshal(gameItem)
-		_ = redisClient.Set(context.Background(), "game:"+IdGame, gameData, 24*7*time.Hour)
+		_ = redisClient.Set(context.Background(), share.GamePattern(IdGame), gameData, 24*7*time.Hour)
 	}
+
 	gameSize := 10 - len(mp)
-	fmt.Println("gameSize", gameSize)
 
 	filter := bson.A{
-		bson.D{{"$sample", bson.D{{"size", gameSize}}}},
+		bson.D{{Key: "$sample", Value: bson.D{{Key: "size", Value: gameSize}}}},
 	}
-	fmt.Println("Hello", filter)
 
 	cursor, err := gameCollection.Aggregate(context.Background(), filter)
 	if err != nil {
 		panic(err)
 	}
 	// Decode the resulting cursor into a slice of Record structs
+
 	var records []GameItem
 	if err := cursor.All(context.Background(), &records); err != nil {
 		panic(err)
 	}
-	// Set the records into redis
-	for _, record := range records {
-		// fmt.Printf("%s, %s, %d\n", record.ID, record.ID, record.Game)
-		record.GuessLimit = guessLimit
-		gameData, _ := json.Marshal(record)
-		_ = redisClient.Set(context.Background(), "game:"+strconv.Itoa(record.ID), gameData, 24*7*time.Hour)
-	}
 
-	// for _, result := range results {
-	// 	cursor.Decode(&result)
-	// 	output, err := json.MarshalIndent(result, "", "    ")
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	fmt.Printf("%s\n", output)
-	// }
+	// Set the records into redis: can use pipeline
+	_, err = redisClient.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
+		for _, record := range records {
+			record.GuessLimit = guessLimit
+			gameData, _ := json.Marshal(record)
+			_ = pipe.Set(context.Background(), share.GamePattern(strconv.Itoa(record.ID)), gameData, 24*7*time.Hour)
+		}
+		return nil
+	})
+	if err != nil && err != redis.Nil {
+		panic(err)
+	}
 }
 
 func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
@@ -143,10 +153,10 @@ func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
 		// generate a random 8-digit number
 		min := 10000000
 		max := 99999999
-		randId := shareFunc.CreateRandomNumber(min, max)
+		randId := share.CreateRandomNumber(min, max)
 		items[i] = GameItem{ID: randId, Game: v, GuessLimit: guessLimit}
 		val, _ := json.Marshal(items[i])
-		_, err := client.Set(context.Background(), "game:"+strconv.Itoa(randId), val, 24*7*time.Hour).Result() //
+		_, err := client.Set(context.Background(), share.GamePattern(strconv.Itoa(randId)), val, 24*7*time.Hour).Result() //
 		if err != nil {
 			panic(err)
 		}
@@ -157,14 +167,14 @@ func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
 func GetGameValue(client *redis.Client, IdGame int) GameItem {
 	// var Game *pb.Game
 	var Game GameItem
-	getGameString, _ := client.Get(context.Background(), "game:"+strconv.Itoa(IdGame)).Result()
+	getGameString, _ := client.Get(context.Background(), share.GamePattern(strconv.Itoa(IdGame))).Result()
 	_ = json.Unmarshal([]byte(getGameString), &Game)
 	return Game
 }
 
 // to get list of games
 func GetListGame(client *redis.Client) (int, []*pb.Game) {
-	keys, _ := client.Keys(context.Background(), "game:*").Result()
+	keys, _ := client.Keys(context.Background(), share.AllGamePattern()).Result()
 
 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
 		for _, key := range keys {
@@ -185,28 +195,25 @@ func GetListGame(client *redis.Client) (int, []*pb.Game) {
 }
 
 // to update list of games
-func UpdateGame(client *redis.Client, wrongLimit int) {
-	gameKeys, _ := client.Keys(context.Background(), "game:*").Result()
-	for _, gameKey := range gameKeys {
-		IdGame := shareFunc.GetKeyElement(gameKey, 1)
-		keyPattern := "session:*:" + IdGame
-		sessionKeys, _ := client.Keys(context.Background(), keyPattern).Result()
-		if len(sessionKeys) == 0 {
-			client.Del(context.Background(), gameKey)
-			CreateGames(client, 1, wrongLimit)
-		}
-	}
+func UpdateGame(redisClient *redis.Client, mongoClient *mongo.Client, wrongLimit int) {
+	DeleteGames(redisClient)
+	CacheGame(mongoClient, redisClient, 30)
 }
 
-func DeleteGames(client *redis.Client) (int, []*pb.Game) {
-	// pipe := client.Pipeline()
-	keys, _ := client.Keys(context.Background(), "game:*").Result() //
+func DeleteGames(client *redis.Client) int {
+	keys, _ := client.Keys(context.Background(), share.AllGamePattern()).Result() //
 
-	var Games []*pb.Game
-	for _, key := range keys {
-		_, _ = client.Del(context.Background(), key).Result()
+	_, err := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
+		for _, key := range keys {
+			pipe.Del(context.Background(), key)
+		}
+		return nil
+	})
+	if err != nil && err != redis.Nil {
+		return 1
 	}
-	return len(Games), Games
+
+	return 0
 }
 
 func haveResults(result []int) []int {
@@ -240,7 +247,7 @@ func GenerateHint(result string, types string) (string, bool) {
 		randoms := [2]int{}
 
 		for i := 0; i < 2; i++ {
-			create := shareFunc.CreateRandomNumber(0, 4) // random position
+			create := share.CreateRandomNumber(0, 4) // random position
 			if check[create] == 0 {
 				randoms[i] = create
 				check[create]++

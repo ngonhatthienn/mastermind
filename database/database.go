@@ -31,8 +31,8 @@ func CreateRedisDatabase() (*redis.Client, error) {
 	}
 	client := redis.NewClient(&redis.Options{
 		Addr:     config.Redis.Addr,
-		Password: config.Redis.Password, // no password set
-		DB:       0,                     // use default DB
+		Password: config.Redis.Password, 
+		DB:       0,                     
 	})
 	return client, nil
 }
@@ -45,7 +45,6 @@ func CreateMongoDBConnection() *mongo.Client {
 		panic(err)
 	}
 	url := "mongodb+srv://" + config.Mongodb.User + ":" + config.Mongodb.Password + config.Mongodb.Port
-	// serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(url)
 	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {

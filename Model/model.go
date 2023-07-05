@@ -11,8 +11,7 @@ import (
 
 	gameApp "intern2023/app"
 	"intern2023/database"
-	shareFunc "intern2023/share"
-
+	share "intern2023/share"
 	game "intern2023/handler/Game"
 	leaderboard "intern2023/handler/Leaderboard"
 	session "intern2023/handler/Session"
@@ -40,8 +39,8 @@ func NewService() *Service {
 }
 
 // GAME
-func (s *Service) InitGame() {
-	game.CacheGame(s.mongoClient, s.redisClient, 10)
+func (s *Service) InitGame(guessLimit int) {
+	game.CacheGame(s.mongoClient, s.redisClient, guessLimit)
 }
 
 func (s *Service) CreateGame(sizeGame int, GuessLimit int) {
@@ -49,6 +48,9 @@ func (s *Service) CreateGame(sizeGame int, GuessLimit int) {
 }
 
 func (s *Service) ListGame() (int, []*pb.Game) {
+	// Check Any Games, if not, generate it
+	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
+	// Get list game
 	length, Games := game.GetListGame(s.redisClient)
 	if length == 0 {
 		game.CreateGames(s.redisClient, 10, 30)
@@ -57,53 +59,59 @@ func (s *Service) ListGame() (int, []*pb.Game) {
 	return length, Games
 }
 
-func (s *Service) GetCurrent(IdUser int) (shareFunc.Status, *pb.GameReply) {
+func (s *Service) GetCurrent(IdUser int) (share.Status, *pb.GameReply) {
+	// Check Any Games, if not, generate it
+	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
 	// Check exist user
-	// IdUser := int(in.IdUser)
 	if user.CheckExistUser(s.redisClient, IdUser) == false {
-		status := shareFunc.GenerateStatus(404, "User")
+		status := share.GenerateStatus(404, "User")
 		return status, &pb.GameReply{}
 	}
 	_, IdGame := session.CreateUserSession(s.redisClient, int32(IdUser))
 	Game := game.GetGameValue(s.redisClient, IdGame)
 	GameReply := pb.GameReply{XId: int32(Game.ID), GuessLimit: int32(Game.GuessLimit)}
 
-	status := shareFunc.GenerateStatus(200, "Get current")
+	status := share.GenerateStatus(200, "Get current")
 	return status, &GameReply
 }
 
 // Pick one game
-func (s *Service) PickGame(IdUser int, IdGame int) (shareFunc.Status, *pb.GameReply) {
+func (s *Service) PickGame(IdUser int, IdGame int) (share.Status, *pb.GameReply) {
+	// Check Any Games, if not, generate it
+	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
 	// Check exist user
 	if user.CheckExistUser(s.redisClient, IdUser) == false {
-		status := shareFunc.GenerateStatus(404, "User")
+		status := share.GenerateStatus(404, "User")
 		return status, &pb.GameReply{}
 	}
 	// Check exist game
 	if game.CheckExistGame(s.redisClient, IdGame) == false {
-		status := shareFunc.GenerateStatus(404, "Game")
+		status := share.GenerateStatus(404, "Game")
 		return status, &pb.GameReply{}
 	}
 	// Handle pick game
 	session.CreateSessionWithId(s.redisClient, int32(IdUser), int32(IdGame))
 	Game := game.GetGameValue(s.redisClient, IdGame)
 	GameReply := pb.GameReply{XId: int32(Game.ID), GuessLimit: int32(Game.GuessLimit)}
-	status := shareFunc.GenerateStatus(200, "Pick game")
+	status := share.GenerateStatus(200, "Pick game")
 	return status, &GameReply
 }
 
 // Update Game
-func (s *Service) UpdateGame(GuessLimit int) shareFunc.Status {
-	// Check exist user
-	game.UpdateGame(s.redisClient, GuessLimit)
-	status := shareFunc.GenerateStatus(200, "Update Game")
+func (s *Service) UpdateGame(GuessLimit int) share.Status {
+	game.UpdateGame(s.redisClient, s.mongoClient, GuessLimit)
+	status := share.GenerateStatus(200, "Update Game")
 	return status
 }
 
 // Play Game
-func (s *Service) PlayGame(IdUser int, UserGuess string) (shareFunc.Status, int, []*pb.ListHistory) {
+func (s *Service) PlayGame(IdUser int, UserGuess string) (share.Status, int, []*pb.ListHistory) {
+	// Check Any Games, if not, generate it
+	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
+	
+	// Check exist user
 	if user.CheckExistUser(s.redisClient, IdUser) == false {
-		status := shareFunc.GenerateStatus(404, "User")
+		status := share.GenerateStatus(404, "User")
 		return status, 0, nil
 	}
 	IdUserString := strconv.Itoa(IdUser)
@@ -118,19 +126,18 @@ func (s *Service) PlayGame(IdUser int, UserGuess string) (shareFunc.Status, int,
 	} else {
 		keySession = keySessions[0]
 	}
-
 	// Update history when play
 
 	isWin, _ := s.redisClient.HGet(context.Background(), keySession, "isWin").Bool()
 	if isWin {
-		status := shareFunc.GenerateStatus(200, "")
+		status := share.GenerateStatus(200, "")
 		status.Message = "You'd already won, please get another game"
 		return status, 0, nil
 	}
 	guessLeft, _ := s.redisClient.HGet(context.Background(), keySession, "guessLeft").Int()
 
 	if guessLeft == 0 {
-		status := shareFunc.GenerateStatus(200, "")
+		status := share.GenerateStatus(200, "")
 		status.Message = "You lose!!!"
 		return status, 0, nil
 	} else {
@@ -138,7 +145,7 @@ func (s *Service) PlayGame(IdUser int, UserGuess string) (shareFunc.Status, int,
 		s.redisClient.HSet(context.Background(), keySession, "guessLeft", guessLeft)
 	}
 
-	IdGameString := shareFunc.GetKeyElement(keySession, 2)
+	IdGameString := share.GetKeyElement(keySession, 2)
 	IdGame, _ := strconv.Atoi(IdGameString)
 	getGameValue := game.GetGameValue(s.redisClient, IdGame)
 
@@ -149,7 +156,6 @@ func (s *Service) PlayGame(IdUser int, UserGuess string) (shareFunc.Status, int,
 		s.redisClient.HSet(context.Background(), keySession, "isWin", true)
 
 		// Handle Time
-
 		timeStart, _ := s.redisClient.HGet(context.Background(), keySession, "timeStart").Int64()
 		savedTime := time.Unix(timeStart, 0)
 
@@ -161,42 +167,41 @@ func (s *Service) PlayGame(IdUser int, UserGuess string) (shareFunc.Status, int,
 
 		score := int(diffInSeconds) + guessLeft*100 + (right+pos)*2
 		_ = leaderboard.AddScore(s.redisClient, IdUserString, IdGameString, int64(score))
-		status := shareFunc.GenerateStatus(200, "")
+		status := share.GenerateStatus(200, "")
 		status.Message = "You win!!!"
 		return status, guessLeft, nil
 	}
 
 	var listHistory []*pb.ListHistory
 	listHistory, _ = session.PushAndGetHistory(s.redisClient, keySession, UserGuess, int32(rightNumber), int32(rightPosition))
-	status := shareFunc.GenerateStatus(200, "")
+	status := share.GenerateStatus(200, "")
 	status.Message = "Try your best !!!"
 	return status, guessLeft, listHistory
 }
 
 // Hint Game
-func (s *Service) HintGame(IdUser int, Type string) (shareFunc.Status, string) {
-	// IdUser := int(in.IdUser)
+func (s *Service) HintGame(IdUser int, Type string) (share.Status, string) {
 	if user.CheckExistUser(s.redisClient, IdUser) == false {
-		status := shareFunc.GenerateStatus(404, "User")
+		status := share.GenerateStatus(404, "User")
 		return status, ""
 	}
 
-	keySessionPattern := "session:" + strconv.Itoa(IdUser) + ":*"
+	keySessionPattern := share.AllSessionPatterns(strconv.Itoa(IdUser))
 
 	keySessions, _ := s.redisClient.Keys(context.Background(), keySessionPattern).Result()
 	// The session of this user is not exists or expired
 	if len(keySessions) == 0 {
-		status := shareFunc.GenerateStatus(404, "Session")
+		status := share.GenerateStatus(404, "Session")
 		return status, ""
 	}
 
-	IdGame := shareFunc.GetKeyElement(keySessions[0], 2)
+	IdGame := share.GetKeyElement(keySessions[0], 2)
 	key := "game:" + IdGame
 	val, _ := s.redisClient.Get(context.Background(), key).Result()
 
 	// The game in this session is not exists or expired
 	if val == "" {
-		status := shareFunc.GenerateStatus(404, "Game")
+		status := share.GenerateStatus(404, "Game")
 		return status, ""
 	}
 	var Result game.GameItem
@@ -205,10 +210,10 @@ func (s *Service) HintGame(IdUser int, Type string) (shareFunc.Status, string) {
 
 	res, isSuccess := game.GenerateHint(Result.Game, Type)
 	if !isSuccess {
-		status := shareFunc.GenerateStatus(400, "")
+		status := share.GenerateStatus(400, "")
 		return status, ""
 	}
-	status := shareFunc.GenerateStatus(400, "Get hint")
+	status := share.GenerateStatus(400, "Get hint")
 	return status, res
 }
 
@@ -242,26 +247,23 @@ func (s *Service) ListUsers() ([]*pb.User, error) {
 }
 
 // LEADERBOARD
-func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (shareFunc.Status,[]*pb.LeaderBoardRank,int32, string) {
+func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status, []*pb.LeaderBoardRank, int32, string) {
 	// Check exist game
-	// IdGame := int(in.IdGame)
 	if game.CheckExistGame(s.redisClient, IdGame) == false {
-		status := shareFunc.GenerateStatus(404, "Get LeaderBoard")
-		return status, nil,0,""
+		status := share.GenerateStatus(404, "Get LeaderBoard")
+		return status, nil, 0, ""
 
 		// return &pb.LeaderBoardReply{Code: 404}, nil
 	}
 	// Check exits user
-	// IdUser := int(in.IdUser)
 	if user.CheckExistUser(s.redisClient, IdUser) == false {
-		status := shareFunc.GenerateStatus(404, "User")
-		return status, nil,0,""
+		status := share.GenerateStatus(404, "User")
+		return status, nil, 0, ""
 	}
 
 	IdUserString := strconv.Itoa(IdUser)
 	leaderboardData, _ := leaderboard.GetLeaderboard(s.redisClient, strconv.Itoa(IdGame), int64(Size), IdUserString)
-	status := shareFunc.GenerateStatus(200, "Get LeaderBoard")
+	status := share.GenerateStatus(200, "Get LeaderBoard")
 	UserRank, UserScore := leaderboard.GetUserRank(s.redisClient, strconv.Itoa(IdGame), strconv.Itoa(IdUser))
-	return status, leaderboardData,UserRank,UserScore
-
+	return status, leaderboardData, UserRank, UserScore
 }

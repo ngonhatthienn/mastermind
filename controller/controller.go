@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	// "fmt"
 
 	model "intern2023/Model"
 	pb "intern2023/pb"
@@ -21,15 +20,12 @@ func NewController(Service *model.Service) *Controller {
 
 // Init game in Mongo database
 func (c *Controller) InitGame(ctx context.Context, in *pb.InitGameRequest) (*pb.InitGameReply, error) {
-	// mongoClient := database.CreateMongoDBConnection()
-	// redisClient, _ := database.CreateRedisDatabase()
-	c.service.InitGame()
+	c.service.InitGame(int(in.GuessLimit))
 	return &pb.InitGameReply{Code: 200, Message: "Init game success!!!"}, nil
 }
 
 // Create game in Redis database
 func (c *Controller) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (*pb.CreateGameReply, error) {
-	// client, _ := database.CreateRedisDatabase()
 	sizeGame := 10
 	GuessLimit := int(in.GuessLimit)
 	c.service.CreateGame(sizeGame, GuessLimit)
