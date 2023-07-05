@@ -111,7 +111,7 @@ func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit 
 		gameItem.GuessLimit = guessLimit
 
 		gameData, _ := json.Marshal(gameItem)
-		_ = redisClient.Set(context.Background(), share.GamePattern(IdGame), gameData, 24*7*time.Hour)
+		_ = redisClient.Set(context.Background(), share.GamePattern(IdGame), gameData, 10*time.Minute)
 	}
 
 	gameSize := 10 - len(mp)
@@ -136,7 +136,7 @@ func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit 
 		for _, record := range records {
 			record.GuessLimit = guessLimit
 			gameData, _ := json.Marshal(record)
-			_ = pipe.Set(context.Background(), share.GamePattern(strconv.Itoa(record.ID)), gameData, 24*7*time.Hour)
+			_ = pipe.Set(context.Background(), share.GamePattern(strconv.Itoa(record.ID)), gameData, 10*time.Minute)
 		}
 		return nil
 	})
@@ -145,27 +145,26 @@ func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit 
 	}
 }
 
-func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
-	arr := CreateGameHelper(sizeGame)
-	// seed the random number generator
-	items := make([]GameItem, len(arr))
-	for i, v := range arr {
-		// generate a random 8-digit number
-		min := 10000000
-		max := 99999999
-		randId := share.CreateRandomNumber(min, max)
-		items[i] = GameItem{ID: randId, Game: v, GuessLimit: guessLimit}
-		val, _ := json.Marshal(items[i])
-		_, err := client.Set(context.Background(), share.GamePattern(strconv.Itoa(randId)), val, 24*7*time.Hour).Result() //
-		if err != nil {
-			panic(err)
-		}
-	}
-}
+// func CreateGames(client *redis.Client, sizeGame int, guessLimit int) {
+// 	arr := CreateGameHelper(sizeGame)
+// 	// seed the random number generator
+// 	items := make([]GameItem, len(arr))
+// 	for i, v := range arr {
+// 		// generate a random 8-digit number
+// 		min := 10000000
+// 		max := 99999999
+// 		randId := share.CreateRandomNumber(min, max)
+// 		items[i] = GameItem{ID: randId, Game: v, GuessLimit: guessLimit}
+// 		val, _ := json.Marshal(items[i])
+// 		_, err := client.Set(context.Background(), share.GamePattern(strconv.Itoa(randId)), val, 24*7*time.Hour).Result() //
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 	}
+// }
 
 // to get data of game
 func GetGameValue(client *redis.Client, IdGame int) GameItem {
-	// var Game *pb.Game
 	var Game GameItem
 	getGameString, _ := client.Get(context.Background(), share.GamePattern(strconv.Itoa(IdGame))).Result()
 	_ = json.Unmarshal([]byte(getGameString), &Game)

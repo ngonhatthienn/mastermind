@@ -18,12 +18,6 @@ func NewController(Service *model.Service) *Controller {
 
 // GAME
 
-// Init game in Mongo database
-func (c *Controller) InitGame(ctx context.Context, in *pb.InitGameRequest) (*pb.InitGameReply, error) {
-	c.service.InitGame(int(in.GuessLimit))
-	return &pb.InitGameReply{Code: 200, Message: "Init game success!!!"}, nil
-}
-
 // Create game in Redis database
 func (c *Controller) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (*pb.CreateGameReply, error) {
 	sizeGame := 10

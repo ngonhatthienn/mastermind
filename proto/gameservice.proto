@@ -8,12 +8,6 @@ import "google/api/annotations.proto";
 
 // Here is the overall greeting service definition where we define all our endpoints
 service Services {
-  rpc InitGame(InitGameRequest) returns (InitGameReply) {
-    option (google.api.http) = {
-      post: "/v1/game/init"
-      body: "*"
-    };
-  }
   rpc CreateGame(CreateGameRequest) returns (CreateGameReply) {
     option (google.api.http) = {
       post: "/v1/game/create"
@@ -216,12 +210,3 @@ message LeaderBoardReply{
   string userScore = 5;
 
 }
-
-//Create User services
-// service UserServices {
-//   rpc GetListUser(ListUserRequest) returns (ListUserReply) {
-//     option (google.api.http) = {
-//       get: "/v1/user/list"
-//     };
-//   }
-// }

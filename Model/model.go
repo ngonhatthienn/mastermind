@@ -39,12 +39,9 @@ func NewService() *Service {
 }
 
 // GAME
-func (s *Service) InitGame(guessLimit int) {
-	game.CacheGame(s.mongoClient, s.redisClient, guessLimit)
-}
 
 func (s *Service) CreateGame(sizeGame int, GuessLimit int) {
-	game.CreateGames(s.redisClient, sizeGame, GuessLimit)
+	game.CacheGame(s.mongoClient, s.redisClient, GuessLimit)
 }
 
 func (s *Service) ListGame() (int, []*pb.Game) {
@@ -52,10 +49,6 @@ func (s *Service) ListGame() (int, []*pb.Game) {
 	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
 	// Get list game
 	length, Games := game.GetListGame(s.redisClient)
-	if length == 0 {
-		game.CreateGames(s.redisClient, 10, 30)
-		length, Games = game.GetListGame(s.redisClient)
-	}
 	return length, Games
 }
 

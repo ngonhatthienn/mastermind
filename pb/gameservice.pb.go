@@ -1705,13 +1705,7 @@ var file_gameservice_proto_rawDesc = []byte{
 	0x61, 0x6e, 0x6b, 0x18, 0x04, 0x20, 0x01, 0x28, 0x05, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x52,
 	0x61, 0x6e, 0x6b, 0x12, 0x1c, 0x0a, 0x09, 0x75, 0x73, 0x65, 0x72, 0x53, 0x63, 0x6f, 0x72, 0x65,
 	0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x75, 0x73, 0x65, 0x72, 0x53, 0x63, 0x6f, 0x72,
-	0x65, 0x32, 0xdd, 0x08, 0x0a, 0x08, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x12, 0x5e,
-	0x0a, 0x08, 0x49, 0x6e, 0x69, 0x74, 0x47, 0x61, 0x6d, 0x65, 0x12, 0x1c, 0x2e, 0x67, 0x61, 0x6d,
-	0x65, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x47, 0x61, 0x6d,
-	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1a, 0x2e, 0x67, 0x61, 0x6d, 0x65, 0x73,
-	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x49, 0x6e, 0x69, 0x74, 0x47, 0x61, 0x6d, 0x65, 0x52,
-	0x65, 0x70, 0x6c, 0x79, 0x22, 0x18, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x12, 0x3a, 0x01, 0x2a, 0x22,
-	0x0d, 0x2f, 0x76, 0x31, 0x2f, 0x67, 0x61, 0x6d, 0x65, 0x2f, 0x69, 0x6e, 0x69, 0x74, 0x12, 0x66,
+	0x65, 0x32, 0xfd, 0x07, 0x0a, 0x08, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x12, 0x66,
 	0x0a, 0x0a, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x47, 0x61, 0x6d, 0x65, 0x12, 0x1e, 0x2e, 0x67,
 	0x61, 0x6d, 0x65, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74,
 	0x65, 0x47, 0x61, 0x6d, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e, 0x67,
@@ -1828,30 +1822,28 @@ var file_gameservice_proto_depIdxs = []int32{
 	7,  // 3: gameservice.PickGameReply.game:type_name -> gameservice.GameReply
 	22, // 4: gameservice.ListUserReply.users:type_name -> gameservice.User
 	24, // 5: gameservice.LeaderBoardReply.ranks:type_name -> gameservice.LeaderBoardRank
-	0,  // 6: gameservice.Services.InitGame:input_type -> gameservice.InitGameRequest
-	3,  // 7: gameservice.Services.CreateGame:input_type -> gameservice.CreateGameRequest
-	5,  // 8: gameservice.Services.ListGame:input_type -> gameservice.ListGameRequest
-	8,  // 9: gameservice.Services.GetCurrent:input_type -> gameservice.CurrentGameRequest
-	17, // 10: gameservice.Services.PickGame:input_type -> gameservice.PickGameRequest
-	11, // 11: gameservice.Services.PlayGame:input_type -> gameservice.PlayGameRequest
-	13, // 12: gameservice.Services.UpdateGame:input_type -> gameservice.UpdateGameRequest
-	15, // 13: gameservice.Services.HintGame:input_type -> gameservice.HintGameRequest
-	19, // 14: gameservice.Services.CreateUser:input_type -> gameservice.CreateUserRequest
-	21, // 15: gameservice.Services.GetListUser:input_type -> gameservice.ListUserRequest
-	25, // 16: gameservice.Services.GetLeaderBoard:input_type -> gameservice.LeaderBoardRequest
-	1,  // 17: gameservice.Services.InitGame:output_type -> gameservice.InitGameReply
-	4,  // 18: gameservice.Services.CreateGame:output_type -> gameservice.CreateGameReply
-	6,  // 19: gameservice.Services.ListGame:output_type -> gameservice.ListGameReply
-	9,  // 20: gameservice.Services.GetCurrent:output_type -> gameservice.CurrentGameReply
-	18, // 21: gameservice.Services.PickGame:output_type -> gameservice.PickGameReply
-	12, // 22: gameservice.Services.PlayGame:output_type -> gameservice.PlayGameReply
-	14, // 23: gameservice.Services.UpdateGame:output_type -> gameservice.UpdateGameReply
-	16, // 24: gameservice.Services.HintGame:output_type -> gameservice.HintGameReply
-	20, // 25: gameservice.Services.CreateUser:output_type -> gameservice.CreateUserReply
-	23, // 26: gameservice.Services.GetListUser:output_type -> gameservice.ListUserReply
-	26, // 27: gameservice.Services.GetLeaderBoard:output_type -> gameservice.LeaderBoardReply
-	17, // [17:28] is the sub-list for method output_type
-	6,  // [6:17] is the sub-list for method input_type
+	3,  // 6: gameservice.Services.CreateGame:input_type -> gameservice.CreateGameRequest
+	5,  // 7: gameservice.Services.ListGame:input_type -> gameservice.ListGameRequest
+	8,  // 8: gameservice.Services.GetCurrent:input_type -> gameservice.CurrentGameRequest
+	17, // 9: gameservice.Services.PickGame:input_type -> gameservice.PickGameRequest
+	11, // 10: gameservice.Services.PlayGame:input_type -> gameservice.PlayGameRequest
+	13, // 11: gameservice.Services.UpdateGame:input_type -> gameservice.UpdateGameRequest
+	15, // 12: gameservice.Services.HintGame:input_type -> gameservice.HintGameRequest
+	19, // 13: gameservice.Services.CreateUser:input_type -> gameservice.CreateUserRequest
+	21, // 14: gameservice.Services.GetListUser:input_type -> gameservice.ListUserRequest
+	25, // 15: gameservice.Services.GetLeaderBoard:input_type -> gameservice.LeaderBoardRequest
+	4,  // 16: gameservice.Services.CreateGame:output_type -> gameservice.CreateGameReply
+	6,  // 17: gameservice.Services.ListGame:output_type -> gameservice.ListGameReply
+	9,  // 18: gameservice.Services.GetCurrent:output_type -> gameservice.CurrentGameReply
+	18, // 19: gameservice.Services.PickGame:output_type -> gameservice.PickGameReply
+	12, // 20: gameservice.Services.PlayGame:output_type -> gameservice.PlayGameReply
+	14, // 21: gameservice.Services.UpdateGame:output_type -> gameservice.UpdateGameReply
+	16, // 22: gameservice.Services.HintGame:output_type -> gameservice.HintGameReply
+	20, // 23: gameservice.Services.CreateUser:output_type -> gameservice.CreateUserReply
+	23, // 24: gameservice.Services.GetListUser:output_type -> gameservice.ListUserReply
+	26, // 25: gameservice.Services.GetLeaderBoard:output_type -> gameservice.LeaderBoardReply
+	16, // [16:26] is the sub-list for method output_type
+	6,  // [6:16] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
