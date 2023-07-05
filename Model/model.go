@@ -11,11 +11,11 @@ import (
 
 	gameApp "intern2023/app"
 	"intern2023/database"
-	share "intern2023/share"
 	game "intern2023/handler/Game"
 	leaderboard "intern2023/handler/Leaderboard"
 	session "intern2023/handler/Session"
 	user "intern2023/handler/User"
+	share "intern2023/share"
 
 	pb "intern2023/pb"
 )
@@ -39,7 +39,6 @@ func NewService() *Service {
 }
 
 // GAME
-
 func (s *Service) CreateGame(sizeGame int, GuessLimit int) {
 	game.CacheGame(s.mongoClient, s.redisClient, GuessLimit)
 }
@@ -101,7 +100,7 @@ func (s *Service) UpdateGame(GuessLimit int) share.Status {
 func (s *Service) PlayGame(IdUser int, UserGuess string) (share.Status, int, []*pb.ListHistory) {
 	// Check Any Games, if not, generate it
 	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
-	
+
 	// Check exist user
 	if user.CheckExistUser(s.redisClient, IdUser) == false {
 		status := share.GenerateStatus(404, "User")
@@ -110,8 +109,7 @@ func (s *Service) PlayGame(IdUser int, UserGuess string) (share.Status, int, []*
 	IdUserString := strconv.Itoa(IdUser)
 
 	// Check Exist session or not
-	getSessions := "session:" + IdUserString + ":*"
-	keySessions, _ := s.redisClient.Keys(context.Background(), getSessions).Result()
+	keySessions, _ := s.redisClient.Keys(context.Background(), share.AllSessionPatterns(IdUserString)).Result()
 	var keySession string
 	if len(keySessions) == 0 {
 		_, IdGame := session.CreateUserSession(s.redisClient, int32(IdUser))
@@ -211,15 +209,22 @@ func (s *Service) HintGame(IdUser int, Type string) (share.Status, string) {
 }
 
 // USER
+func (s *Service) LogIn(Name string, Password string) (share.Status, error) {
+	if user.LogIn(s.redisClient, Name, Password) {
+		status := share.GenerateStatus(200, "LogIn")
+		return status, nil
+	}
+	status := share.GenerateStatus(404, "User")
+	return status, nil
+}
+
 func (s *Service) CreateUser(Name string, Password string) (int32, error) {
 	Id := user.CreateUser(s.redisClient, Name, Password) // Not in best practices
 	return Id, nil
 }
 
 func (s *Service) ListUsers() ([]*pb.User, error) {
-	// redisClient, _ := database.CreateRedisDatabase()
-
-	keys, _ := s.redisClient.Keys(context.Background(), "user:*").Result()
+	keys, _ := s.redisClient.Keys(context.Background(), share.AllUserPattern()).Result()
 
 	cmdS, _ := s.redisClient.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
 		for _, key := range keys {

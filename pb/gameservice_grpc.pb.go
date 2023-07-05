@@ -29,6 +29,7 @@ const (
 	Services_CreateUser_FullMethodName     = "/gameservice.Services/CreateUser"
 	Services_GetListUser_FullMethodName    = "/gameservice.Services/GetListUser"
 	Services_GetLeaderBoard_FullMethodName = "/gameservice.Services/GetLeaderBoard"
+	Services_LogIn_FullMethodName          = "/gameservice.Services/LogIn"
 )
 
 // ServicesClient is the client API for Services service.
@@ -45,6 +46,7 @@ type ServicesClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserReply, error)
 	GetListUser(ctx context.Context, in *ListUserRequest, opts ...grpc.CallOption) (*ListUserReply, error)
 	GetLeaderBoard(ctx context.Context, in *LeaderBoardRequest, opts ...grpc.CallOption) (*LeaderBoardReply, error)
+	LogIn(ctx context.Context, in *LogInRequest, opts ...grpc.CallOption) (*LogInReply, error)
 }
 
 type servicesClient struct {
@@ -145,6 +147,15 @@ func (c *servicesClient) GetLeaderBoard(ctx context.Context, in *LeaderBoardRequ
 	return out, nil
 }
 
+func (c *servicesClient) LogIn(ctx context.Context, in *LogInRequest, opts ...grpc.CallOption) (*LogInReply, error) {
+	out := new(LogInReply)
+	err := c.cc.Invoke(ctx, Services_LogIn_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ServicesServer is the server API for Services service.
 // All implementations must embed UnimplementedServicesServer
 // for forward compatibility
@@ -159,6 +170,7 @@ type ServicesServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserReply, error)
 	GetListUser(context.Context, *ListUserRequest) (*ListUserReply, error)
 	GetLeaderBoard(context.Context, *LeaderBoardRequest) (*LeaderBoardReply, error)
+	LogIn(context.Context, *LogInRequest) (*LogInReply, error)
 	mustEmbedUnimplementedServicesServer()
 }
 
@@ -195,6 +207,9 @@ func (UnimplementedServicesServer) GetListUser(context.Context, *ListUserRequest
 }
 func (UnimplementedServicesServer) GetLeaderBoard(context.Context, *LeaderBoardRequest) (*LeaderBoardReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLeaderBoard not implemented")
+}
+func (UnimplementedServicesServer) LogIn(context.Context, *LogInRequest) (*LogInReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LogIn not implemented")
 }
 func (UnimplementedServicesServer) mustEmbedUnimplementedServicesServer() {}
 
@@ -389,6 +404,24 @@ func _Services_GetLeaderBoard_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Services_LogIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogInRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServicesServer).LogIn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Services_LogIn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServicesServer).LogIn(ctx, req.(*LogInRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Services_ServiceDesc is the grpc.ServiceDesc for Services service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -435,6 +468,10 @@ var Services_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetLeaderBoard",
 			Handler:    _Services_GetLeaderBoard_Handler,
+		},
+		{
+			MethodName: "LogIn",
+			Handler:    _Services_LogIn_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

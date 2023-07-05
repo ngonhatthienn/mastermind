@@ -66,6 +66,12 @@ service Services {
       body: "*"
     };
   }
+  rpc LogIn(LogInRequest) returns (LogInReply) {
+    option (google.api.http) = {
+      post: "/v1/user/login"
+      body: "*"
+    };
+  }
 }
 // INIT GAMES IN MONGODB
 message InitGameRequest {
@@ -208,5 +214,15 @@ message LeaderBoardReply{
   repeated LeaderBoardRank ranks = 3;
   int32 userRank = 4;
   string userScore = 5;
+}
 
+// LogIn
+message LogInRequest{
+  string username = 1;
+  string password = 2;
+}
+message LogInReply{
+  int32 code = 1;
+  string message = 2;
+  string token = 3;
 }

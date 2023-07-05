@@ -29,7 +29,6 @@ func (c *Controller) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (
 
 func (c *Controller) ListGame(ctx context.Context, in *pb.ListGameRequest) (*pb.ListGameReply, error) {
 	length, Games := c.service.ListGame()
-
 	return &pb.ListGameReply{Code: 200, Length: int32(length), Games: Games}, nil
 }
 
@@ -65,6 +64,10 @@ func (c *Controller) HintGame(ctx context.Context, in *pb.HintGameRequest) (*pb.
 }
 
 // USER
+func (c *Controller) LogIn(ctx context.Context, in *pb.LogInRequest) (*pb.LogInReply, error) {
+	status, _ := c.service.LogIn(in.Username, in.Password)
+	return &pb.LogInReply{Code: status.Code, Message: status.Message}, nil
+}
 func (c *Controller) CreateUser(ctx context.Context, in *pb.CreateUserRequest) (*pb.CreateUserReply, error) {
 	Id, _ := c.service.CreateUser(in.Name, in.Password)
 	return &pb.CreateUserReply{XId: Id, Message: "Welcome " + in.Name}, nil
