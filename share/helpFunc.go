@@ -28,3 +28,7 @@ func GetKeyElement(key string, index int) string {
 	parts := strings.Split(key, ":")
 	return parts[index]
 }
+func GetTokenElement(Token string, index int) string {
+	parts := strings.Split(Token, " ")
+	return parts[index]
+}

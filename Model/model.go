@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"strconv"
 	"time"
-
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -15,14 +14,15 @@ import (
 	leaderboard "intern2023/handler/Leaderboard"
 	session "intern2023/handler/Session"
 	user "intern2023/handler/User"
-	share "intern2023/share"
-
 	pb "intern2023/pb"
+	share "intern2023/share"
+	"intern2023/token"
 )
 
 type Service struct {
 	redisClient *redis.Client
 	mongoClient *mongo.Client
+	pasetoMaker token.PasetoMaker
 }
 
 type UserItem struct {
@@ -34,8 +34,9 @@ type UserItem struct {
 func NewService() *Service {
 	redisClient, _ := database.CreateRedisDatabase()
 	mongoClient := database.CreateMongoDBConnection()
+	pasetoMaker, _ := token.NewPasetoMaker()
 
-	return &Service{redisClient: redisClient, mongoClient: mongoClient}
+	return &Service{redisClient: redisClient, mongoClient: mongoClient, pasetoMaker: pasetoMaker}
 }
 
 // GAME
@@ -209,13 +210,20 @@ func (s *Service) HintGame(IdUser int, Type string) (share.Status, string) {
 }
 
 // USER
-func (s *Service) LogIn(Name string, Password string) (share.Status, error) {
-	if user.LogIn(s.redisClient, Name, Password) {
+func (s *Service) LogIn(Name string, Password string) (share.Status, int, bool) {
+	IdUser, ok := user.LogIn(s.redisClient, Name, Password)
+	if ok {
 		status := share.GenerateStatus(200, "LogIn")
-		return status, nil
+		return status, IdUser, ok
 	}
 	status := share.GenerateStatus(404, "User")
-	return status, nil
+	return status, IdUser, ok
+}
+
+func (s *Service) CreateToken(IdUser int) string {
+	IdUserString := strconv.Itoa(IdUser)
+	token := s.pasetoMaker.CreateToken(IdUserString)
+	return token
 }
 
 func (s *Service) CreateUser(Name string, Password string) (int32, error) {
@@ -250,8 +258,6 @@ func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status
 	if game.CheckExistGame(s.redisClient, IdGame) == false {
 		status := share.GenerateStatus(404, "Get LeaderBoard")
 		return status, nil, 0, ""
-
-		// return &pb.LeaderBoardReply{Code: 404}, nil
 	}
 	// Check exits user
 	if user.CheckExistUser(s.redisClient, IdUser) == false {
@@ -264,4 +270,18 @@ func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status
 	status := share.GenerateStatus(200, "Get LeaderBoard")
 	UserRank, UserScore := leaderboard.GetUserRank(s.redisClient, strconv.Itoa(IdGame), strconv.Itoa(IdUser))
 	return status, leaderboardData, UserRank, UserScore
+}
+
+// AUTHORIZATION
+func (s *Service) Authorization(bearerToken []string) (int, bool) {
+	Token := share.GetTokenElement(bearerToken[0], 1)
+	IdUserString, ok := s.pasetoMaker.VerifyUser(Token, s.redisClient)
+	if !ok {
+		return 0, false
+	}
+	IdUser, err := strconv.Atoi(IdUserString)
+	if err  != nil {
+		return 0, false
+	}
+	return IdUser, true
 }

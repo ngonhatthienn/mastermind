@@ -12,7 +12,7 @@ func statusMessage(errorCode int32) string {
 	case 400:
 		return "bad request"
 	case 401:
-		return "unauthorized"
+		return "Unauthorized"
 	case 404:
 		return "not found"
 	default:

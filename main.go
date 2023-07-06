@@ -17,10 +17,9 @@ import (
 	pb "intern2023/pb"
 )
 
-
 func main() {
 	// Create a listener on TCP port
-	
+
 	lis, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatalln("Failed to listen:", err)
@@ -40,7 +39,7 @@ func main() {
 		log.Fatalln(s.Serve(lis))
 	}()
 
-	//Run update game here
+	// Run update game here
 	go func() {
 		for {
 			time.Sleep(10 * time.Minute)

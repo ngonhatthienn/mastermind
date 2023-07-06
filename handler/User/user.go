@@ -65,7 +65,7 @@ func GetListUser(client *redis.Client) (int, []*pb.User) {
 	return len(Users), Users
 }
 
-func LogIn(client *redis.Client, username string, Password string) bool {
+func LogIn(client *redis.Client, username string, Password string) (int, bool) {
 	keys, _ := client.Keys(context.Background(), share.AllUserPattern()).Result()
 	fmt.Println("Login: ", keys)
 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
@@ -83,8 +83,8 @@ func LogIn(client *redis.Client, username string, Password string) bool {
 
 		if data.Name == username {
 
-			return password.CheckPassword(data.Password, Password)
+			return int(data.XId), password.CheckPassword(data.Password, Password)
 		}
 	}
-	return false
+	return 0, false
 }

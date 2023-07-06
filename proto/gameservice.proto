@@ -112,7 +112,6 @@ message GameReply {
   int32 guessLimit = 3;
 }
 message CurrentGameRequest {
-  int32 idUser = 1;
 }
 // The response message containing the greetings
 message CurrentGameReply {
@@ -128,7 +127,6 @@ message ListHistory {
 	int32 rightPosition = 3;
 }
 message PlayGameRequest {
-  int32 idUser = 1;
   string userGuess = 2;
 }
 
@@ -153,7 +151,6 @@ message UpdateGameReply {
 
 // HINTGAME
 message HintGameRequest {
-  int32 idUser = 1;
   string type = 2;
 }
 // The response message containing the greetings
@@ -165,7 +162,6 @@ message HintGameReply {
 
 // PICKGAME
 message PickGameRequest{
-  int32 idUser = 1;
   int32 idGame = 2;
 
 }
@@ -205,7 +201,6 @@ message LeaderBoardRank {
 
 message LeaderBoardRequest {
   int32 idGame = 1;
-  int32 idUser = 2;
   int64 size = 3;
 }
 message LeaderBoardReply{

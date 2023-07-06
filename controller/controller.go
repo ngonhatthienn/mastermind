@@ -3,8 +3,11 @@ package controller
 import (
 	"context"
 
+	"google.golang.org/grpc/metadata"
+
 	model "intern2023/Model"
 	pb "intern2023/pb"
+	"intern2023/share"
 )
 
 type Controller struct {
@@ -34,12 +37,38 @@ func (c *Controller) ListGame(ctx context.Context, in *pb.ListGameRequest) (*pb.
 
 // Get Random game
 func (c *Controller) GetCurrent(ctx context.Context, in *pb.CurrentGameRequest) (*pb.CurrentGameReply, error) {
-	status, GameReply := c.service.GetCurrent(int(in.IdUser))
+	// Check Auth
+	md, _ := metadata.FromIncomingContext(ctx)
+	bearerToken := md.Get("authorization")
+	if len(bearerToken) <= 0 {
+		status := share.GenerateStatus(401, "")
+		return &pb.CurrentGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	IdUser, ok := c.service.Authorization(bearerToken)
+	if !ok {
+		status := share.GenerateStatus(404, "Token invalid or")
+		return &pb.CurrentGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	// 
+	status, GameReply := c.service.GetCurrent(IdUser)
 	return &pb.CurrentGameReply{Code: status.Code, Message: status.Message, Game: GameReply}, nil
 }
 
 func (c *Controller) PickGame(ctx context.Context, in *pb.PickGameRequest) (*pb.PickGameReply, error) {
-	status, GameReply := c.service.PickGame(int(in.IdUser), int(in.IdGame))
+	// Check Auth
+	md, _ := metadata.FromIncomingContext(ctx)
+	bearerToken := md.Get("authorization")
+	if len(bearerToken) <= 0 {
+		status := share.GenerateStatus(401, "")
+		return &pb.PickGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	IdUser, ok := c.service.Authorization(bearerToken)
+	if !ok {
+		status := share.GenerateStatus(404, "Token invalid or")
+		return &pb.PickGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	// 
+	status, GameReply := c.service.PickGame(IdUser, int(in.IdGame))
 	return &pb.PickGameReply{Code: status.Code, Message: status.Message, Game: GameReply}, nil
 }
 
@@ -51,23 +80,53 @@ func (c *Controller) UpdateGame(ctx context.Context, in *pb.UpdateGameRequest) (
 
 // Play Game
 func (c *Controller) PlayGame(ctx context.Context, in *pb.PlayGameRequest) (*pb.PlayGameReply, error) {
-	status, guessLeft, listHistory := c.service.PlayGame(int(in.IdUser), in.UserGuess)
+	// Check Auth
+	md, _ := metadata.FromIncomingContext(ctx)
+	bearerToken := md.Get("authorization")
+	if len(bearerToken) <= 0 {
+		status := share.GenerateStatus(401, "")
+		return &pb.PlayGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	IdUser, ok := c.service.Authorization(bearerToken)
+	if !ok {
+		status := share.GenerateStatus(404, "Token invalid or")
+		return &pb.PlayGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	status, guessLeft, listHistory := c.service.PlayGame(IdUser, in.UserGuess)
 	return &pb.PlayGameReply{Code: status.Code, Message: status.Message, GuessesLeft: int32(guessLeft), Result: listHistory}, nil
 }
 
 // Hint Game
 
 func (c *Controller) HintGame(ctx context.Context, in *pb.HintGameRequest) (*pb.HintGameReply, error) {
+	// Check Auth
+	md, _ := metadata.FromIncomingContext(ctx)
+	bearerToken := md.Get("authorization")
+	if len(bearerToken) <= 0 {
+		status := share.GenerateStatus(401, "")
+		return &pb.HintGameReply{Code: status.Code, Message: status.Message}, nil
+	}
+	IdUser, ok := c.service.Authorization(bearerToken)
+	if !ok {
+		status := share.GenerateStatus(404, "Token invalid or")
+		return &pb.HintGameReply{Code: status.Code, Message: status.Message}, nil
+	}
 	// Check exist user
-	status, res := c.service.HintGame(int(in.IdUser), in.Type)
+	status, res := c.service.HintGame(IdUser, in.Type)
 	return &pb.HintGameReply{Code: status.Code, Message: status.Message, GameHint: res}, nil
 }
 
 // USER
 func (c *Controller) LogIn(ctx context.Context, in *pb.LogInRequest) (*pb.LogInReply, error) {
-	status, _ := c.service.LogIn(in.Username, in.Password)
-	return &pb.LogInReply{Code: status.Code, Message: status.Message}, nil
+	status, IdUser, ok := c.service.LogIn(in.Username, in.Password)
+	if !ok {
+		status := share.GenerateStatus(404, "User")
+		return &pb.LogInReply{Code: status.Code, Message: status.Message}, nil
+	}
+	token := c.service.CreateToken(IdUser)
+	return &pb.LogInReply{Code: status.Code, Message: status.Message, Token: token}, nil
 }
+
 func (c *Controller) CreateUser(ctx context.Context, in *pb.CreateUserRequest) (*pb.CreateUserReply, error) {
 	Id, _ := c.service.CreateUser(in.Name, in.Password)
 	return &pb.CreateUserReply{XId: Id, Message: "Welcome " + in.Name}, nil
@@ -81,7 +140,19 @@ func (c *Controller) GetListUser(ctx context.Context, in *pb.ListUserRequest) (*
 
 // LEADERBOARD
 func (c *Controller) GetLeaderBoard(ctx context.Context, in *pb.LeaderBoardRequest) (*pb.LeaderBoardReply, error) {
-	status, leaderboardData, UserRank, UserScore := c.service.GetLeaderBoard(int(in.IdGame), int(in.IdUser), int(in.Size))
+	// Check Auth
+	md, _ := metadata.FromIncomingContext(ctx)
+	bearerToken := md.Get("authorization")
+	if len(bearerToken) <= 0 {
+		status := share.GenerateStatus(401, "")
+		return &pb.LeaderBoardReply{Code: status.Code, Message: status.Message}, nil
+	}
+	IdUser, ok := c.service.Authorization(bearerToken)
+	if !ok {
+		status := share.GenerateStatus(404, "Token invalid or")
+		return &pb.LeaderBoardReply{Code: status.Code, Message: status.Message}, nil
+	}
+	status, leaderboardData, UserRank, UserScore := c.service.GetLeaderBoard(int(in.IdGame), IdUser, int(in.Size))
 
 	return &pb.LeaderBoardReply{Code: status.Code, Message: status.Message, Ranks: leaderboardData, UserRank: UserRank, UserScore: UserScore}, nil
 }
