@@ -15,13 +15,10 @@ import (
 	model "intern2023/Model"
 	"intern2023/controller"
 	pb "intern2023/pb"
-	"intern2023/token"
-
 )
 
 
 func main() {
-	token.Example()
 	// Create a listener on TCP port
 	
 	lis, err := net.Listen("tcp", ":8080")

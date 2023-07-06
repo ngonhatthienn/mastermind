@@ -18,6 +18,7 @@ type UserItem struct {
 	Password string `json:"password"`
 }
 
+
 func CheckExistUser(client *redis.Client, IdUser int) bool {
 	IdUserString := strconv.Itoa(IdUser)
 	UserKey := share.UserPattern(IdUserString)
