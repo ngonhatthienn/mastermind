@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"strconv"
 	"time"
+
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc/metadata"
 
 	gameApp "intern2023/app"
 	"intern2023/database"
@@ -254,9 +256,11 @@ func (s *Service) ListUsers() ([]*pb.User, error) {
 
 // LEADERBOARD
 func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status, []*pb.LeaderBoardRank, int32, string) {
+	// Check Any Games, if not, generate it
+	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
 	// Check exist game
 	if game.CheckExistGame(s.redisClient, IdGame) == false {
-		status := share.GenerateStatus(404, "Get LeaderBoard")
+		status := share.GenerateStatus(404, "Id Game")
 		return status, nil, 0, ""
 	}
 	// Check exits user
@@ -273,15 +277,31 @@ func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status
 }
 
 // AUTHORIZATION
-func (s *Service) Authorization(bearerToken []string) (int, bool) {
-	Token := share.GetTokenElement(bearerToken[0], 1)
-	IdUserString, ok := s.pasetoMaker.VerifyUser(Token, s.redisClient)
+func (s *Service) Authorization(md metadata.MD) (share.Status, int) {
+	bearerToken := md.Get("authorization")
+	if len(bearerToken) <= 0 {
+		status := share.GenerateStatus(401, "")
+		return status, 0
+	}
+	reqToken := share.GetTokenElement(bearerToken[0], 1)
+	decryptedToken, decryptedOk := s.pasetoMaker.DecryptedToken(reqToken)
+	if !decryptedOk {
+		status := share.GenerateStatus(400, "Token")
+		status.Message = "Invalid token"
+		return status, 0
+	}
+	if token.IsTokenExpired(*decryptedToken) {
+		status := share.GenerateStatus(404, "Token")
+		status.Message = "Token Is Expired"
+		return status, 0
+	}
+
+	IdUserString, ok := s.pasetoMaker.VerifyUser(decryptedToken, s.redisClient)
 	if !ok {
-		return 0, false
+		status := share.GenerateStatus(404, "User")
+		return status, 0
 	}
-	IdUser, err := strconv.Atoi(IdUserString)
-	if err  != nil {
-		return 0, false
-	}
-	return IdUser, true
+	IdUser, _ := strconv.Atoi(IdUserString)
+	status := share.GenerateStatus(200, "")
+	return status, IdUser
 }

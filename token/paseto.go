@@ -33,6 +33,16 @@ func NewPasetoMaker() (PasetoMaker, error) {
 	return *maker, nil
 }
 
+func IsTokenExpired(decrypted paseto.Token) bool {
+    // Get the token's expiration time
+    expirationTime, err := decrypted.GetExpiration()
+    if err != nil {
+        return true
+    }
+    // Check if the expiration time has passed
+    return time.Now().After(expirationTime)
+}
+
 func (maker *PasetoMaker) CreateToken(IdUserString string) string {
 	token := paseto.NewToken()
 
@@ -50,9 +60,7 @@ func (maker *PasetoMaker) CreateToken(IdUserString string) string {
 	return encrypted
 }
 
-func GetIdFromToken(token string, key paseto.V4SymmetricKey) (string, bool) {
-	parse := paseto.Parser{}
-	decrypted, _ := parse.ParseV4Local(key, token, nil)
+func GetUserIdFromToken(decrypted *paseto.Token) (string, bool) {
 	if decrypted == nil {
 		return "", false
 	}
@@ -62,10 +70,17 @@ func GetIdFromToken(token string, key paseto.V4SymmetricKey) (string, bool) {
 	}
 	return IdUserString, true
 }
-
-func (maker *PasetoMaker) VerifyUser(token string, client *redis.Client) (string, bool) {
-	IdUserString, ok := GetIdFromToken(token, maker.SymmetricKey)
-
+func (maker *PasetoMaker)DecryptedToken(token string) (*paseto.Token, bool){
+	parse := paseto.Parser{}
+	decrypted, err := parse.ParseV4Local(maker.SymmetricKey, token, nil)
+	if err != nil || decrypted == nil {
+		return nil, false
+	}
+	return decrypted, true
+}
+// We should verify user in token
+func (maker *PasetoMaker) VerifyUser(decrypted *paseto.Token, client *redis.Client) (string, bool) {
+	IdUserString, ok := GetUserIdFromToken(decrypted)
 	if !ok {
 		return "", false
 	}

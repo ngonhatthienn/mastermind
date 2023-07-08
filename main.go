@@ -12,14 +12,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	model "intern2023/Model"
 	"intern2023/controller"
+	"intern2023/model"
 	pb "intern2023/pb"
 )
 
 func main() {
 	// Create a listener on TCP port
-
 	lis, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatalln("Failed to listen:", err)
@@ -29,16 +28,12 @@ func main() {
 	// Create a gRPC server object
 	s := grpc.NewServer()
 	Controller := controller.NewController(Service)
-	// userController := &userController.UserController{UserService, pb.UnimplementedServicesServer{}}
 	pb.RegisterServicesServer(s, Controller)
-	// Attach the Greeter service to the server
-	// pb.RegisterServicesServer(s, &server{})
 	// Serve gRPC server
 	log.Println("Serving gRPC on 0.0.0.0:8080")
 	go func() {
 		log.Fatalln(s.Serve(lis))
 	}()
-
 	// Run update game here
 	go func() {
 		for {
