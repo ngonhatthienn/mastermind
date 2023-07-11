@@ -198,7 +198,7 @@ message ListUserReply{
 }
 
 // LeaderBoard
-message LeaderBoardRank {
+message LeaderBoard {
   int32 userId = 1;
   string score = 2;
 }
@@ -210,7 +210,7 @@ message LeaderBoardRequest {
 message LeaderBoardReply{
   int32 code = 1;
   string message = 2;
-  repeated LeaderBoardRank ranks = 3;
+  repeated LeaderBoard ranks = 3;
   int32 userRank = 4 ;
   string userScore = 5;
 }

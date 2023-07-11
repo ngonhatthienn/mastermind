@@ -47,7 +47,7 @@ func CreateUserSession(client *redis.Client, IdUser int32) ([]string, int) {
 	IdGameString := share.GetKeyElement(GameKey, 1)
 
 	// Get guessLimit
-	var game game.GameItem
+	var game game.Game
 	gameData, _ := client.Get(context.Background(), GameKey).Result()
 	_ = json.Unmarshal([]byte(gameData), &game)
 	// Set session
@@ -74,7 +74,7 @@ func CreateSessionWithId(client *redis.Client, IdUser int32, IdGame int32) {
 	}
 	// Create new session
 	// Get guessLimit
-	var game game.GameItem
+	var game game.Game
 	IdGameString := strconv.Itoa(int(IdGame))
 	gameData, _ := client.Get(context.Background(), share.GamePattern(IdGameString)).Result()
 	_ = json.Unmarshal([]byte(gameData), &game)

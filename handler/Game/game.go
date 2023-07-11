@@ -12,23 +12,16 @@ import (
 
 	gameApp "intern2023/app"
 	"intern2023/database"
-	pb "intern2023/pb"
 	"intern2023/share"
 )
 
 // Declare 10 game
 
-type GameItem struct {
+type Game struct {
 	ID         int    `json:"_id"`
 	Game       string `json:"game"`
 	GuessLimit int    `json:"guessLimit"`
 }
-type Game struct {
-	ID         int    `bson:"id"`
-	Game       string `bson:"game"`
-	GuessLimit int    `bson:"guessLimit"`
-}
-
 
 
 // Check the database for any games or not
@@ -79,7 +72,7 @@ func CreateGamesMongo(client *mongo.Client, sizeGame int) {
 		min := 10000000
 		max := 99999999
 		randId := share.CreateRandomNumber(min, max)
-		item := GameItem{ID: randId, Game: v}
+		item := Game{ID: randId, Game: v}
 		ui = append(ui, item)
 
 	}
@@ -106,7 +99,7 @@ func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit 
 		mp[IdGame] = 1
 		IdGameInt, _ := strconv.Atoi(IdGame)
 		filter := bson.D{{Key: "id", Value: IdGameInt}}
-		var gameItem GameItem
+		var gameItem Game
 		gameCollection.FindOne(context.Background(), filter).Decode(&gameItem)
 		gameItem.GuessLimit = guessLimit
 
@@ -126,7 +119,7 @@ func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit 
 	}
 	// Decode the resulting cursor into a slice of Record structs
 
-	var records []GameItem
+	var records []Game
 	if err := cursor.All(context.Background(), &records); err != nil {
 		panic(err)
 	}
@@ -146,15 +139,15 @@ func CacheGame(mongoClient *mongo.Client, redisClient *redis.Client, guessLimit 
 }
 
 // to get data of game
-func GetGameValue(client *redis.Client, IdGame int) GameItem {
-	var Game GameItem
+func GetGameValue(client *redis.Client, IdGame int) Game {
+	var Game Game
 	getGameString, _ := client.Get(context.Background(), share.GamePattern(strconv.Itoa(IdGame))).Result()
 	_ = json.Unmarshal([]byte(getGameString), &Game)
 	return Game
 }
 
 // to get list of games
-func GetListGame(client *redis.Client) (int, []*pb.Game) {
+func GetListGame(client *redis.Client) (int, []Game) {
 	keys, _ := client.Keys(context.Background(), share.AllGamePattern()).Result()
 
 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
@@ -164,12 +157,12 @@ func GetListGame(client *redis.Client) (int, []*pb.Game) {
 		return nil
 	})
 
-	var Games []*pb.Game
+	var Games []Game
 	for _, cmd := range cmdS {
 		val := cmd.(*redis.StringCmd).Val()
-		var data *pb.Game
-		_ = json.Unmarshal([]byte(val), &data)
-		Games = append(Games, data)
+		var game Game
+		_ = json.Unmarshal([]byte(val), &game)
+		Games = append(Games, game)
 	}
 
 	return len(Games), Games

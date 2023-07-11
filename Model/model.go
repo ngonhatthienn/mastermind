@@ -26,12 +26,6 @@ type Service struct {
 	pasetoMaker token.PasetoMaker
 }
 
-// type User struct {
-// 	ID       int32  `json:"_id"`
-// 	Name     string `json:"name"`
-// 	Email    string `json:"email"`
-// 	Password string `json:"password"`
-// }
 
 func NewService() *Service {
 	redisClient, _ := database.CreateRedisDatabase()
@@ -46,7 +40,7 @@ func (s *Service) CreateGame(sizeGame int, GuessLimit int) {
 	game.CacheGame(s.mongoClient, s.redisClient, GuessLimit)
 }
 
-func (s *Service) ListGame() (int, []*pb.Game) {
+func (s *Service) ListGame() (int, []game.Game) {
 	// Check Any Games, if not, generate it
 	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
 	// Get list game
@@ -187,7 +181,7 @@ func (s *Service) HintGame(IdUser int, Type string) (share.Status, string) {
 		status := share.GenerateStatus(404, "Game")
 		return status, ""
 	}
-	var Result game.GameItem
+	var Result game.Game
 
 	_ = json.Unmarshal([]byte(val), &Result)
 
@@ -244,7 +238,7 @@ func (s *Service) ListUsers() ([]user.User, error) {
 }
 
 // LEADERBOARD
-func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status, []*pb.LeaderBoardRank, int32, string) {
+func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status, []leaderboard.LeaderBoard, int32, string) {
 	// Check Any Games, if not, generate it
 	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
 	// Check exist game

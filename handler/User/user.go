@@ -44,27 +44,6 @@ func CreateUser(client *redis.Client, Username string, Password string, Email st
 	return item.ID
 }
 
-// func GetListUser(client *redis.Client) (int, []*pb.User) {
-// 	keys, _ := client.Keys(context.Background(), share.AllUserPattern()).Result()
-
-// 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
-// 		for _, key := range keys {
-// 			pipe.Get(context.Background(), key).Result()
-// 		}
-// 		return nil
-// 	})
-
-// 	var Users []*pb.User
-// 	for _, cmd := range cmdS {
-// 		val := cmd.(*redis.StringCmd).Val()
-// 		var data *pb.User
-// 		_ = json.Unmarshal([]byte(val), &data)
-// 		Users = append(Users, data)
-// 	}
-
-// 	return len(Users), Users
-// }
-
 func LogIn(client *redis.Client, username string, Password string) (int, bool) {
 	keys, _ := client.Keys(context.Background(), share.AllUserPattern()).Result()
 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {

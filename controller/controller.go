@@ -32,7 +32,10 @@ func (c *Controller) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (
 
 func (c *Controller) ListGame(ctx context.Context, in *pb.ListGameRequest) (*pb.ListGameReply, error) {
 	length, Games := c.service.ListGame()
-	return &pb.ListGameReply{Code: 200, Length: int32(length), Games: Games}, nil
+	gameProtos := ToProto.ToListGameProto(Games)
+	status := share.GenerateStatus(200, "")
+
+	return &pb.ListGameReply{Code: status.Code,Message: status.Message, Length: int32(length), Games: gameProtos}, nil
 }
 
 // Get Random game
@@ -129,7 +132,7 @@ func (c *Controller) GetLeaderBoard(ctx context.Context, in *pb.LeaderBoardReque
 			Code: status.Code, Message: status.Message,
 		}, nil
 	}
-	status, leaderboardData, UserRank, UserScore := c.service.GetLeaderBoard(int(in.IdGame), IdUser, int(in.Size))
-
-	return &pb.LeaderBoardReply{Code: status.Code, Message: status.Message, Ranks: leaderboardData, UserRank: UserRank, UserScore: UserScore}, nil
+	status, leaderboard, UserRank, UserScore := c.service.GetLeaderBoard(int(in.IdGame), IdUser, int(in.Size))
+	leaderboardProto := ToProto.ToLeaderBoardProto(leaderboard)
+	return &pb.LeaderBoardReply{Code: status.Code, Message: status.Message, Ranks: leaderboardProto, UserRank: UserRank, UserScore: UserScore}, nil
 }

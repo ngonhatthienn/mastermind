@@ -1,25 +1,47 @@
-package ToProto 
+package ToProto
 
-import(
-	pb "intern2023/pb"
+import (
+	game "intern2023/handler/Game"
+	leaderboard "intern2023/handler/Leaderboard"
 	user "intern2023/handler/User"
+	pb "intern2023/pb"
 )
 
-// func ToUserProto() *pb.User {
-// 	var userProtos  
-// }
 func ToListUserProto(users []user.User) []*pb.User {
 	var userProtos []*pb.User
 	for _, user := range users {
 		userProto := &pb.User{
-			XId: user.ID,
+			XId:      user.ID,
 			Username: user.Username,
-			Email: user.Email,
+			Email:    user.Email,
 			Password: user.Password,
-			Role: user.Role,
+			Role:     user.Role,
 		}
 		userProtos = append(userProtos, userProto)
 	}
 	return userProtos
 }
 
+func ToListGameProto(games []game.Game) []*pb.Game {
+	var gameProtos []*pb.Game
+	for _, game := range games {
+		gameProto := &pb.Game{
+			XId:        int32(game.ID),
+			GuessLimit: int32(game.GuessLimit),
+		}
+		gameProtos = append(gameProtos, gameProto)
+	}
+	return gameProtos
+}
+
+func ToLeaderBoardProto(leaderboards []leaderboard.LeaderBoard) []*pb.LeaderBoard {
+	var leaderboardProtos []*pb.LeaderBoard
+	for _, leaderboard := range leaderboards {
+		leaderboardProto := &pb.LeaderBoard{
+			UserId: int32(leaderboard.UserId),
+			Score:  leaderboard.Score,
+		}
+		leaderboardProtos = append(leaderboardProtos, leaderboardProto)
+	}
+	return leaderboardProtos
+}
