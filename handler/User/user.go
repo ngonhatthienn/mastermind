@@ -44,7 +44,7 @@ func CreateUser(client *redis.Client, Username string, Password string, Email st
 	return item.ID
 }
 
-func LogIn(client *redis.Client, username string, Password string) (int, bool) {
+func LogIn(client *redis.Client, username string, Password string) (int,string, bool) {
 	keys, _ := client.Keys(context.Background(), share.AllUserPattern()).Result()
 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
 		for _, key := range keys {
@@ -54,13 +54,12 @@ func LogIn(client *redis.Client, username string, Password string) (int, bool) {
 	})
 	for _, cmd := range cmdS {
 		val := cmd.(*redis.StringCmd).Val()
-		// var data *pb.User
 		var data User
 		_ = json.Unmarshal([]byte(val), &data)
 
 		if data.Username == username {
-			return int(data.ID), password.CheckPassword(data.Password, Password)
+			return int(data.ID),data.Role, password.CheckPassword(data.Password, Password)
 		}
 	}
-	return 0, false
+	return 0, "", false
 }

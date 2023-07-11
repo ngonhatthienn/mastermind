@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 	"time"
-	"encoding/json"
+
 	"intern2023/share"
-	pb "intern2023/pb"
+
 	"aidanwoods.dev/go-paseto"
 	"github.com/golobby/dotenv"
 	"github.com/redis/go-redis/v9"
@@ -43,23 +43,6 @@ func IsTokenExpired(decrypted paseto.Token) bool {
 	return time.Now().After(expirationTime)
 }
 
-func (maker *PasetoMaker) CreateToken(IdUserString string) string {
-	token := paseto.NewToken()
-
-	token.SetIssuedAt(time.Now())
-	token.SetNotBefore(time.Now())
-	token.SetExpiration(time.Now().Add(2 * time.Hour))
-
-	// Set the user id.
-	token.SetString("id-user", IdUserString)
-
-	// Encrypt the token.
-	encrypted := token.V4Encrypt(maker.SymmetricKey, nil)
-
-	// Return the encrypted token.
-	return encrypted
-}
-
 func GetUserIdFromToken(decrypted *paseto.Token) (string, bool) {
 	if decrypted == nil {
 		return "", false
@@ -69,6 +52,39 @@ func GetUserIdFromToken(decrypted *paseto.Token) (string, bool) {
 		return "", false
 	}
 	return IdUserString, true
+}
+
+func Authentication(decrypted *paseto.Token, permission string) bool {
+	if decrypted == nil {
+		return false
+	}
+	UserRole, err := decrypted.GetSubject()
+	if err != nil {
+		return false
+	}
+	if(permission == UserRole) {
+		return true
+	} else if(permission == "none") {
+		return true
+	}
+	return false
+}
+
+func (maker *PasetoMaker) CreateToken(IdUserString string, userRole string) string {
+	token := paseto.NewToken()
+
+	token.SetIssuedAt(time.Now())
+	token.SetNotBefore(time.Now())
+	token.SetExpiration(time.Now().Add(3 * time.Hour))
+	token.SetSubject(userRole)
+	// Set the user id.
+	token.SetString("id-user", IdUserString)
+
+	// Encrypt the token.
+	encrypted := token.V4Encrypt(maker.SymmetricKey, nil)
+
+	// Return the encrypted token.
+	return encrypted
 }
 
 func (maker *PasetoMaker) DecryptedToken(token string) (*paseto.Token, bool) {
@@ -81,18 +97,6 @@ func (maker *PasetoMaker) DecryptedToken(token string) (*paseto.Token, bool) {
 }
 
 // We should verify user in token
-func Authentication(role string, IdUserString string, client *redis.Client) bool {
-	val, err := client.Get(context.Background(), share.UserPattern(IdUserString)).Result()
-	if err != nil || val == "" {
-		return false
-	}
-	var userData *pb.User
-		_ = json.Unmarshal([]byte(val), &userData)
-	if(role != userData.Role) {
-		return false
-	}
-	return true
-}
 
 func (maker *PasetoMaker) VerifyUser(decrypted *paseto.Token, client *redis.Client) (string, bool) {
 	IdUserString, ok := GetUserIdFromToken(decrypted)

@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -33,13 +31,6 @@ func main() {
 	log.Println("Serving gRPC on 0.0.0.0:8080")
 	go func() {
 		log.Fatalln(s.Serve(lis))
-	}()
-	// Run update game here
-	go func() {
-		for {
-			time.Sleep(10 * time.Minute)
-			fmt.Println("After 10 minutes")
-		}
 	}()
 	// Create a client connection to the gRPC server we just started
 	// This is where the gRPC-Gateway proxies the requests

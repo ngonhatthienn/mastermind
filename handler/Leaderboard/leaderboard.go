@@ -26,19 +26,19 @@ func GetUserRank(client *redis.Client, IdGame string, IdUser string) (int32, str
 	ctx := context.Background()
 	rank, err := client.ZRevRank(ctx, share.LeaderBoardPattern(IdGame), IdUser).Result()
     if err != nil {
-        panic(err)
+        return 0, ""
     }
 
     score, err := client.ZScore(ctx, share.LeaderBoardPattern(IdGame), IdUser).Result()
     if err != nil {
-        panic(err)
+		return 0, ""
     }
 	return int32(rank + 1),  strconv.Itoa(int(score))
 }
 
 func GetLeaderboard(client *redis.Client, IdGame string, size int64, IdUser string) ([]LeaderBoard, error) {
 	results, err := client.ZRevRangeWithScores(context.Background(), share.LeaderBoardPattern(IdGame), 0, size-1).Result()
-	if err != nil {
+	if err != nil || len(results) == 0 {
 		return nil, err
 	}
 	var leaderBoards []LeaderBoard

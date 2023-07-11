@@ -169,9 +169,9 @@ func GetListGame(client *redis.Client) (int, []Game) {
 }
 
 // to update list of games
-func UpdateGame(redisClient *redis.Client, mongoClient *mongo.Client, wrongLimit int) {
+func UpdateGame(mongoClient *mongo.Client, redisClient *redis.Client,  wrongLimit int) {
 	DeleteGames(redisClient)
-	CacheGame(mongoClient, redisClient, 30)
+	CacheGame(mongoClient, redisClient, wrongLimit)
 }
 
 func DeleteGames(client *redis.Client) int {

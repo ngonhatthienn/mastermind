@@ -23,6 +23,13 @@ func NewController(Service *model.Service) *Controller {
 // GAME
 // Create game in Redis database
 func (c *Controller) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (*pb.CreateGameReply, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	status, _ := c.service.AuthorAndAuthn(md, "admin")
+	if status.Code != 200 {
+		return &pb.CreateGameReply{
+			Code: status.Code, Message: status.Message,
+		}, nil
+	}
 	sizeGame := 10
 	GuessLimit := int(in.GuessLimit)
 	c.service.CreateGame(sizeGame, GuessLimit)
@@ -31,18 +38,35 @@ func (c *Controller) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (
 }
 
 func (c *Controller) ListGame(ctx context.Context, in *pb.ListGameRequest) (*pb.ListGameReply, error) {
-	length, Games := c.service.ListGame()
-	gameProtos := ToProto.ToListGameProto(Games)
-	status := share.GenerateStatus(200, "")
+	md, _ := metadata.FromIncomingContext(ctx)
+	status, _ := c.service.AuthorAndAuthn(md, "none")
+	if status.Code != 200 {
+		return &pb.ListGameReply{
+			Code: status.Code, Message: status.Message,
+		}, nil
+	}
 
-	return &pb.ListGameReply{Code: status.Code,Message: status.Message, Length: int32(length), Games: gameProtos}, nil
+	// Check it's admin or not
+	var isAdmin bool
+	status, _ = c.service.AuthorAndAuthn(md, "admin")
+	if status.Code == 200 {
+		isAdmin = true
+	} else {
+		isAdmin = false
+	}
+
+	length, Games := c.service.ListGame()
+	gameProtos := ToProto.ToListGameProto(Games, isAdmin)
+	status = share.GenerateStatus(200, "")
+
+	return &pb.ListGameReply{Code: status.Code, Message: status.Message, Length: int32(length), Games: gameProtos}, nil
 }
 
 // Get Random game
 func (c *Controller) GetCurrent(ctx context.Context, in *pb.CurrentGameRequest) (*pb.CurrentGameReply, error) {
 	// Check Auth
 	md, _ := metadata.FromIncomingContext(ctx)
-	status, IdUser := c.service.Authorization(md)
+	status, IdUser := c.service.AuthorAndAuthn(md, "user")
 	if status.Code != 200 {
 		return &pb.CurrentGameReply{Code: status.Code, Message: status.Message}, nil
 	}
@@ -54,7 +78,7 @@ func (c *Controller) GetCurrent(ctx context.Context, in *pb.CurrentGameRequest) 
 func (c *Controller) PickGame(ctx context.Context, in *pb.PickGameRequest) (*pb.PickGameReply, error) {
 	// Check Auth
 	md, _ := metadata.FromIncomingContext(ctx)
-	status, IdUser := c.service.Authorization(md)
+	status, IdUser := c.service.AuthorAndAuthn(md, "user")
 	if status.Code != 200 {
 		return &pb.PickGameReply{Code: status.Code, Message: status.Message}, nil
 	}
@@ -65,7 +89,14 @@ func (c *Controller) PickGame(ctx context.Context, in *pb.PickGameRequest) (*pb.
 
 // Update Game
 func (c *Controller) UpdateGame(ctx context.Context, in *pb.UpdateGameRequest) (*pb.UpdateGameReply, error) {
-	status := c.service.UpdateGame(int(in.GuessLimit))
+	md, _ := metadata.FromIncomingContext(ctx)
+	status, _ := c.service.AuthorAndAuthn(md, "admin")
+	if status.Code != 200 {
+		return &pb.UpdateGameReply{
+			Code: status.Code, Message: status.Message,
+		}, nil
+	}
+	status = c.service.UpdateGame(30)
 	return &pb.UpdateGameReply{Code: status.Code, Message: status.Message}, nil
 }
 
@@ -73,7 +104,7 @@ func (c *Controller) UpdateGame(ctx context.Context, in *pb.UpdateGameRequest) (
 func (c *Controller) PlayGame(ctx context.Context, in *pb.PlayGameRequest) (*pb.PlayGameReply, error) {
 	// Check Auth
 	md, _ := metadata.FromIncomingContext(ctx)
-	status, IdUser := c.service.Authorization(md)
+	status, IdUser := c.service.AuthorAndAuthn(md, "user")
 	if status.Code != 200 {
 		return &pb.PlayGameReply{Code: status.Code, Message: status.Message}, nil
 	}
@@ -86,7 +117,7 @@ func (c *Controller) PlayGame(ctx context.Context, in *pb.PlayGameRequest) (*pb.
 func (c *Controller) HintGame(ctx context.Context, in *pb.HintGameRequest) (*pb.HintGameReply, error) {
 	// Check Auth
 	md, _ := metadata.FromIncomingContext(ctx)
-	status, IdUser := c.service.Authorization(md)
+	status, IdUser := c.service.AuthorAndAuthn(md, "user")
 	if status.Code != 200 {
 		return &pb.HintGameReply{Code: status.Code, Message: status.Message}, nil
 	}
@@ -97,12 +128,12 @@ func (c *Controller) HintGame(ctx context.Context, in *pb.HintGameRequest) (*pb.
 
 // USER
 func (c *Controller) LogIn(ctx context.Context, in *pb.LogInRequest) (*pb.LogInReply, error) {
-	status, IdUser, ok := c.service.LogIn(in.Username, in.Password)
+	status, IdUser, userRole, ok := c.service.LogIn(in.Username, in.Password)
 	if !ok {
 		status := share.GenerateStatus(404, "User")
 		return &pb.LogInReply{Code: status.Code, Message: status.Message}, nil
 	}
-	token := c.service.CreateToken(IdUser)
+	token := c.service.CreateToken(IdUser, userRole)
 	return &pb.LogInReply{Code: status.Code, Message: status.Message, Token: token}, nil
 }
 
@@ -112,13 +143,20 @@ func (c *Controller) CreateUser(ctx context.Context, in *pb.CreateUserRequest) (
 }
 
 func (c *Controller) GetListUser(ctx context.Context, in *pb.ListUserRequest) (*pb.ListUserReply, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	status, _ := c.service.AuthorAndAuthn(md, "admin")
+	if status.Code != 200 {
+		return &pb.ListUserReply{
+			Code: status.Code, Message: status.Message,
+		}, nil
+	}
 	Users, err := c.service.ListUsers()
 	if err != nil {
 		return &pb.ListUserReply{Code: 404, Message: "User Not Found"}, nil
 	}
 	Length := len(Users)
 	userProtos := ToProto.ToListUserProto(Users)
-	status := share.GenerateStatus(200, "")
+	status = share.GenerateStatus(200, "")
 	return &pb.ListUserReply{Code: status.Code, Message: status.Message, Length: int32(Length), Users: userProtos}, nil
 }
 
@@ -126,13 +164,24 @@ func (c *Controller) GetListUser(ctx context.Context, in *pb.ListUserRequest) (*
 func (c *Controller) GetLeaderBoard(ctx context.Context, in *pb.LeaderBoardRequest) (*pb.LeaderBoardReply, error) {
 	// Check Auth
 	md, _ := metadata.FromIncomingContext(ctx)
-	status, IdUser := c.service.Authorization(md)
+	status, IdUser := c.service.AuthorAndAuthn(md, "none")
 	if status.Code != 200 {
 		return &pb.LeaderBoardReply{
 			Code: status.Code, Message: status.Message,
 		}, nil
 	}
-	status, leaderboard, UserRank, UserScore := c.service.GetLeaderBoard(int(in.IdGame), IdUser, int(in.Size))
+
+	// Check it's admin or not
+	var isAdmin bool
+	status, _ = c.service.AuthorAndAuthn(md, "admin")
+	if status.Code == 200 {
+		isAdmin = true
+	} else {
+		isAdmin = false
+	}
+
+	status, leaderboard, UserRank, UserScore := c.service.GetLeaderBoard(int(in.IdGame), IdUser, int(in.Size), isAdmin)
+
 	leaderboardProto := ToProto.ToLeaderBoardProto(leaderboard)
 	return &pb.LeaderBoardReply{Code: status.Code, Message: status.Message, Ranks: leaderboardProto, UserRank: UserRank, UserScore: UserScore}, nil
 }

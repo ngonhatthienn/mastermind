@@ -3,9 +3,10 @@ package model
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+
 	"intern2023/database"
 	"intern2023/token"
-	"strconv"
 
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -26,7 +27,6 @@ type Service struct {
 	pasetoMaker token.PasetoMaker
 }
 
-
 func NewService() *Service {
 	redisClient, _ := database.CreateRedisDatabase()
 	mongoClient := database.CreateMongoDBConnection()
@@ -37,7 +37,7 @@ func NewService() *Service {
 
 // GAME
 func (s *Service) CreateGame(sizeGame int, GuessLimit int) {
-	game.CacheGame(s.mongoClient, s.redisClient, GuessLimit)
+	game.UpdateGame(s.mongoClient, s.redisClient, GuessLimit)
 }
 
 func (s *Service) ListGame() (int, []game.Game) {
@@ -88,7 +88,7 @@ func (s *Service) PickGame(IdUser int, IdGame int) (share.Status, *pb.GameReply)
 
 // Update Game
 func (s *Service) UpdateGame(GuessLimit int) share.Status {
-	game.UpdateGame(s.redisClient, s.mongoClient, GuessLimit)
+	game.UpdateGame( s.mongoClient, s.redisClient, GuessLimit)
 	status := share.GenerateStatus(200, "Update Game")
 	return status
 }
@@ -187,31 +187,31 @@ func (s *Service) HintGame(IdUser int, Type string) (share.Status, string) {
 
 	res, isSuccess := game.GenerateHint(Result.Game, Type)
 	if !isSuccess {
-		status := share.GenerateStatus(400, "")
+		status := share.GenerateStatus(400, "Get hint")
 		return status, ""
 	}
-	status := share.GenerateStatus(400, "Get hint")
+	status := share.GenerateStatus(200, "")
 	return status, res
 }
 
 // USER
-func (s *Service) LogIn(Name string, Password string) (share.Status, int, bool) {
-	IdUser, ok := user.LogIn(s.redisClient, Name, Password)
+func (s *Service) LogIn(Name string, Password string) (share.Status, int, string, bool) {
+	IdUser, userRole, ok := user.LogIn(s.redisClient, Name, Password)
 	if ok {
 		status := share.GenerateStatus(200, "LogIn")
-		return status, IdUser, ok
+		return status, IdUser, userRole, ok
 	}
 	status := share.GenerateStatus(404, "User")
-	return status, IdUser, ok
+	return status, IdUser, userRole, ok
 }
 
-func (s *Service) CreateToken(IdUser int) string {
+func (s *Service) CreateToken(IdUser int, userRole string) string {
 	IdUserString := strconv.Itoa(IdUser)
-	token := s.pasetoMaker.CreateToken(IdUserString)
+	token := s.pasetoMaker.CreateToken(IdUserString, userRole)
 	return token
 }
 
-func (s *Service) CreateUser(Username string, Password string, Email string,Role string) (int32, error) {
+func (s *Service) CreateUser(Username string, Password string, Email string, Role string) (int32, error) {
 	Id := user.CreateUser(s.redisClient, Username, Password, Email, Role) // Not in best practices
 	return Id, nil
 }
@@ -238,7 +238,7 @@ func (s *Service) ListUsers() ([]user.User, error) {
 }
 
 // LEADERBOARD
-func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status, []leaderboard.LeaderBoard, int32, string) {
+func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int, isAdmin bool) (share.Status, []leaderboard.LeaderBoard, int32, string) {
 	// Check Any Games, if not, generate it
 	game.CheckAndGenerateGame(s.mongoClient, s.redisClient)
 	// Check exist game
@@ -253,14 +253,24 @@ func (s *Service) GetLeaderBoard(IdGame int, IdUser int, Size int) (share.Status
 	}
 
 	IdUserString := strconv.Itoa(IdUser)
-	leaderboardData, _ := leaderboard.GetLeaderboard(s.redisClient, strconv.Itoa(IdGame), int64(Size), IdUserString)
+	var UserRank int32
+	var UserScore string
+	leaderboardData, err := leaderboard.GetLeaderboard(s.redisClient, strconv.Itoa(IdGame), int64(Size), IdUserString)
+	if err != nil || leaderboardData == nil {
+		status := share.GenerateStatus(200, "")
+		status.Message = "No user has won this game yet"
+		return status, leaderboardData, UserRank, UserScore
+	}
 	status := share.GenerateStatus(200, "Get LeaderBoard")
-	UserRank, UserScore := leaderboard.GetUserRank(s.redisClient, strconv.Itoa(IdGame), strconv.Itoa(IdUser))
+	if !isAdmin {
+		UserRank, UserScore = leaderboard.GetUserRank(s.redisClient, strconv.Itoa(IdGame), strconv.Itoa(IdUser))
+	}
+
 	return status, leaderboardData, UserRank, UserScore
 }
 
 // AUTHORIZATION
-func (s *Service) Authorization(md metadata.MD) (share.Status, int) {
+func (s *Service) AuthorAndAuthn(md metadata.MD, permission string) (share.Status, int) {
 	bearerToken := md.Get("authorization")
 	if len(bearerToken) <= 0 {
 		status := share.GenerateStatus(401, "")
@@ -282,6 +292,11 @@ func (s *Service) Authorization(md metadata.MD) (share.Status, int) {
 	IdUserString, ok := s.pasetoMaker.VerifyUser(decryptedToken, s.redisClient)
 	if !ok {
 		status := share.GenerateStatus(404, "User")
+		return status, 0
+	}
+	isAuthn := token.Authentication(decryptedToken, permission)
+	if !isAuthn {
+		status := share.GenerateStatus(403, "")
 		return status, 0
 	}
 	IdUser, _ := strconv.Atoi(IdUserString)

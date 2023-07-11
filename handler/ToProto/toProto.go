@@ -22,12 +22,21 @@ func ToListUserProto(users []user.User) []*pb.User {
 	return userProtos
 }
 
-func ToListGameProto(games []game.Game) []*pb.Game {
+func ToListGameProto(games []game.Game, isAdmin bool) []*pb.Game {
 	var gameProtos []*pb.Game
 	for _, game := range games {
-		gameProto := &pb.Game{
-			XId:        int32(game.ID),
-			GuessLimit: int32(game.GuessLimit),
+		gameProto := &pb.Game{}
+		if isAdmin {
+			gameProto = &pb.Game{
+				XId:        int32(game.ID),
+				Game:       game.Game,
+				GuessLimit: int32(game.GuessLimit),
+			}
+		} else {
+			gameProto = &pb.Game{
+				XId:        int32(game.ID),
+				GuessLimit: int32(game.GuessLimit),
+			}
 		}
 		gameProtos = append(gameProtos, gameProto)
 	}

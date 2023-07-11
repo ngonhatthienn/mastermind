@@ -39,8 +39,7 @@ service Services {
   }
   rpc UpdateGame(UpdateGameRequest) returns (UpdateGameReply) {
     option (google.api.http) = {
-      post: "/v1/game/update"
-      body: "*"
+      get: "/v1/game/update"
     };
   }
   rpc HintGame(HintGameRequest) returns (HintGameReply) {
@@ -85,6 +84,7 @@ message InitGameReply {
 message Game {
   int32 _id = 1;
   int32 guessLimit = 2;
+  string game = 3;
 }
 message CreateGameRequest {
   int32 guessLimit = 1;
@@ -138,7 +138,6 @@ message PlayGameReply {
 }
 // UPDATE
 message UpdateGameRequest {
-  int32 guessLimit = 1;
 
 }
 // The response message containing the greetings
@@ -150,7 +149,7 @@ message UpdateGameReply {
 
 // HINTGAME
 message HintGameRequest {
-  string type = 2;
+  string type = 1;
 }
 message HintGameReply {
   int32 code = 1;
