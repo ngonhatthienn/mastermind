@@ -4,20 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
-	"fmt"
+
 	"github.com/redis/go-redis/v9"
 
 	password "intern2023/handler/Password"
-	pb "intern2023/pb"
+	// pb "intern2023/pb"
 	"intern2023/share"
 )
 
-type UserItem struct {
+type User struct {
 	ID       int32  `json:"_id"`
-	Name     string `json:"name"`
+	Username     string `json:"username"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
+	Role     string `json:"role"`
 }
-
 
 func CheckExistUser(client *redis.Client, IdUser int) bool {
 	IdUserString := strconv.Itoa(IdUser)
@@ -26,17 +27,16 @@ func CheckExistUser(client *redis.Client, IdUser int) bool {
 	if valUser == "" {
 		return false
 	}
-
 	return true
 }
 
-func CreateUser(client *redis.Client, Name string, Password string) int32 { // in *pb.CreateUserRequest not very okay
+func CreateUser(client *redis.Client, Username string, Password string, Email string, Role string) int32 { // in *pb.CreateUserRequest not very okay
 
 	min := 10000000
 	max := 99999999
 	XId := share.CreateRandomNumber(min, max)
 	hashedPassword := password.HashPassword(Password)
-	item := UserItem{ID: int32(XId), Name: Name, Password: hashedPassword}
+	item := User{ID: int32(XId), Username: Username, Email: Email, Password: hashedPassword, Role: Role}
 
 	val, _ := json.Marshal(item)
 	_, _ = client.Set(context.Background(), share.UserPattern(strconv.Itoa(XId)), val, 0).Result()
@@ -44,30 +44,29 @@ func CreateUser(client *redis.Client, Name string, Password string) int32 { // i
 	return item.ID
 }
 
-func GetListUser(client *redis.Client) (int, []*pb.User) {
-	keys, _ := client.Keys(context.Background(), share.AllUserPattern()).Result()
+// func GetListUser(client *redis.Client) (int, []*pb.User) {
+// 	keys, _ := client.Keys(context.Background(), share.AllUserPattern()).Result()
 
-	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
-		for _, key := range keys {
-			pipe.Get(context.Background(), key).Result()
-		}
-		return nil
-	})
+// 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
+// 		for _, key := range keys {
+// 			pipe.Get(context.Background(), key).Result()
+// 		}
+// 		return nil
+// 	})
 
-	var Users []*pb.User
-	for _, cmd := range cmdS {
-		val := cmd.(*redis.StringCmd).Val()
-		var data *pb.User
-		_ = json.Unmarshal([]byte(val), &data)
-		Users = append(Users, data)
-	}
+// 	var Users []*pb.User
+// 	for _, cmd := range cmdS {
+// 		val := cmd.(*redis.StringCmd).Val()
+// 		var data *pb.User
+// 		_ = json.Unmarshal([]byte(val), &data)
+// 		Users = append(Users, data)
+// 	}
 
-	return len(Users), Users
-}
+// 	return len(Users), Users
+// }
 
 func LogIn(client *redis.Client, username string, Password string) (int, bool) {
 	keys, _ := client.Keys(context.Background(), share.AllUserPattern()).Result()
-	fmt.Println("Login: ", keys)
 	cmdS, _ := client.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
 		for _, key := range keys {
 			pipe.Get(context.Background(), key).Result()
@@ -76,14 +75,12 @@ func LogIn(client *redis.Client, username string, Password string) (int, bool) {
 	})
 	for _, cmd := range cmdS {
 		val := cmd.(*redis.StringCmd).Val()
-		var data *pb.User
+		// var data *pb.User
+		var data User
 		_ = json.Unmarshal([]byte(val), &data)
-		fmt.Println("Data: ", data.Name)
-		fmt.Println("username: ",username)
 
-		if data.Name == username {
-
-			return int(data.XId), password.CheckPassword(data.Password, Password)
+		if data.Username == username {
+			return int(data.ID), password.CheckPassword(data.Password, Password)
 		}
 	}
 	return 0, false

@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 	"time"
-
+	"encoding/json"
 	"intern2023/share"
-
+	pb "intern2023/pb"
 	"aidanwoods.dev/go-paseto"
 	"github.com/golobby/dotenv"
 	"github.com/redis/go-redis/v9"
@@ -34,13 +34,13 @@ func NewPasetoMaker() (PasetoMaker, error) {
 }
 
 func IsTokenExpired(decrypted paseto.Token) bool {
-    // Get the token's expiration time
-    expirationTime, err := decrypted.GetExpiration()
-    if err != nil {
-        return true
-    }
-    // Check if the expiration time has passed
-    return time.Now().After(expirationTime)
+	// Get the token's expiration time
+	expirationTime, err := decrypted.GetExpiration()
+	if err != nil {
+		return true
+	}
+	// Check if the expiration time has passed
+	return time.Now().After(expirationTime)
 }
 
 func (maker *PasetoMaker) CreateToken(IdUserString string) string {
@@ -70,7 +70,8 @@ func GetUserIdFromToken(decrypted *paseto.Token) (string, bool) {
 	}
 	return IdUserString, true
 }
-func (maker *PasetoMaker)DecryptedToken(token string) (*paseto.Token, bool){
+
+func (maker *PasetoMaker) DecryptedToken(token string) (*paseto.Token, bool) {
 	parse := paseto.Parser{}
 	decrypted, err := parse.ParseV4Local(maker.SymmetricKey, token, nil)
 	if err != nil || decrypted == nil {
@@ -78,14 +79,28 @@ func (maker *PasetoMaker)DecryptedToken(token string) (*paseto.Token, bool){
 	}
 	return decrypted, true
 }
+
 // We should verify user in token
+func Authentication(role string, IdUserString string, client *redis.Client) bool {
+	val, err := client.Get(context.Background(), share.UserPattern(IdUserString)).Result()
+	if err != nil || val == "" {
+		return false
+	}
+	var userData *pb.User
+		_ = json.Unmarshal([]byte(val), &userData)
+	if(role != userData.Role) {
+		return false
+	}
+	return true
+}
+
 func (maker *PasetoMaker) VerifyUser(decrypted *paseto.Token, client *redis.Client) (string, bool) {
 	IdUserString, ok := GetUserIdFromToken(decrypted)
 	if !ok {
 		return "", false
 	}
-	_, err := client.Exists(context.Background(), share.UserPattern(IdUserString)).Result()
-	if err != nil {
+	val, err := client.Get(context.Background(), share.UserPattern(IdUserString)).Result()
+	if err != nil || val == "" {
 		return "", false
 	}
 	return IdUserString, true

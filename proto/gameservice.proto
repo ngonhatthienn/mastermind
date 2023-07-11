@@ -98,7 +98,6 @@ message CreateGameReply {
 message ListGameRequest {
   string name = 1;
 }
-// The response message containing the greetings
 message ListGameReply {
   int32 code = 1;
   string message = 2;
@@ -135,7 +134,7 @@ message PlayGameReply {
   int32 code = 1;
   string message = 2;
   int32 guessesLeft = 3;
-  repeated ListHistory Result = 6;
+  repeated ListHistory result = 6;
 }
 // UPDATE
 message UpdateGameRequest {
@@ -153,7 +152,6 @@ message UpdateGameReply {
 message HintGameRequest {
   string type = 2;
 }
-// The response message containing the greetings
 message HintGameReply {
   int32 code = 1;
   string message = 2;
@@ -171,10 +169,18 @@ message PickGameReply{
   GameReply game = 3;
 }
 // USER
-
+message User {
+  int32 _id = 1;
+  string username = 2;
+  string email = 3;
+  string password = 4;
+  string role = 5;
+}
 message CreateUserRequest {
-  string name = 1;
-  string password = 2;
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string role = 4;
 }
 message CreateUserReply {
   int32 _id = 1;
@@ -183,20 +189,18 @@ message CreateUserReply {
 
 message ListUserRequest{
 }
-message User {
-  int32 _id = 1;
-  string name = 2;
-  string Password = 3;//we forget to change password here
-}
+
 message ListUserReply{
-  int32 length = 1;
-  repeated User users = 2;
+  int32 code = 1;
+  string message = 2;
+  int32 length = 3;
+  repeated User users = 4;
 }
 
 // LeaderBoard
 message LeaderBoardRank {
-  int32 UserId = 1;
-  string Score = 2;
+  int32 userId = 1;
+  string score = 2;
 }
 
 message LeaderBoardRequest {
@@ -207,7 +211,7 @@ message LeaderBoardReply{
   int32 code = 1;
   string message = 2;
   repeated LeaderBoardRank ranks = 3;
-  int32 userRank = 4;
+  int32 userRank = 4 ;
   string userScore = 5;
 }
 
