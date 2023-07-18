@@ -176,10 +176,11 @@ message User {
   string role = 5;
 }
 message CreateUserRequest {
-  string username = 1;
-  string email = 2;
-  string password = 3;
-  string role = 4;
+  string fullname = 1;
+  string username = 2;
+  string email = 3;
+  string password = 4;
+  string role = 5;
 }
 message CreateUserReply {
   int32 _id = 1;

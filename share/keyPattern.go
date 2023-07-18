@@ -8,13 +8,22 @@ func AllGamePattern() string {
 func GamePattern(IdGame string) string {
 	return "game:" + IdGame
 }
+
 // USER
 func AllUserPattern() string {
 	return "user:*"
 }
 
-func UserPattern(IdUser string) string {
+func userPattern(IdUser string) string {
 	return "user:" + IdUser
+}
+
+func UserPatternValue(IdUser string) string {
+	return userPattern(IdUser) + ":value"
+}
+
+func UserPatternSession(IdUser string) string {
+	return userPattern(IdUser) + ":session"
 }
 
 // LEADERBOARD

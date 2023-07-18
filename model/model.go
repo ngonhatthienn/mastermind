@@ -88,7 +88,7 @@ func (s *Service) PickGame(IdUser int, IdGame int) (share.Status, *pb.GameReply)
 
 // Update Game
 func (s *Service) UpdateGame(GuessLimit int) share.Status {
-	game.UpdateGame( s.mongoClient, s.redisClient, GuessLimit)
+	game.UpdateGame(s.mongoClient, s.redisClient, GuessLimit)
 	status := share.GenerateStatus(200, "Update Game")
 	return status
 }
@@ -207,12 +207,14 @@ func (s *Service) LogIn(Name string, Password string) (share.Status, int, string
 
 func (s *Service) CreateToken(IdUser int, userRole string) string {
 	IdUserString := strconv.Itoa(IdUser)
-	token := s.pasetoMaker.CreateToken(IdUserString, userRole)
+	token, IdSession := s.pasetoMaker.CreateToken(IdUserString, userRole)
+	_, _ = s.redisClient.Set(context.Background(), share.UserPatternSession(IdUserString), IdSession, 0).Result()
+	// IdSession
 	return token
 }
 
-func (s *Service) CreateUser(Username string, Password string, Email string, Role string) (int32, error) {
-	Id := user.CreateUser(s.redisClient, Username, Password, Email, Role) // Not in best practices
+func (s *Service) CreateUser(Fullname string, Username string, Password string, Email string, Role string) (int32, error) {
+	Id := user.CreateUser(s.redisClient, Fullname, Username, Password, Email, Role) // Not in best practices
 	return Id, nil
 }
 
@@ -279,26 +281,29 @@ func (s *Service) AuthorAndAuthn(md metadata.MD, permission string) (share.Statu
 	reqToken := share.GetTokenElement(bearerToken[0], 1)
 	decryptedToken, decryptedOk := s.pasetoMaker.DecryptedToken(reqToken)
 	if !decryptedOk {
-		status := share.GenerateStatus(400, "Token")
-		status.Message = "Invalid token"
-		return status, 0
-	}
-	if token.IsTokenExpired(*decryptedToken) {
-		status := share.GenerateStatus(404, "Token")
-		status.Message = "Token Is Expired"
+		status := share.GenerateStatus(401, "Token")
+		status.Message = "Invalid or Expired token "
 		return status, 0
 	}
 
-	IdUserString, ok := s.pasetoMaker.VerifyUser(decryptedToken, s.redisClient)
+	IdUserString, ok := s.pasetoMaker.CheckExistUser(decryptedToken, s.redisClient)
 	if !ok {
 		status := share.GenerateStatus(404, "User")
 		return status, 0
 	}
-	isAuthn := token.Authentication(decryptedToken, permission)
+	_, ok = s.pasetoMaker.CheckExactSession(decryptedToken, s.redisClient)
+	if !ok {
+		status := share.GenerateStatus(401, "Token")
+		status.Message = "Expired token "
+		return status, 0
+	}
+
+	isAuthn := s.pasetoMaker.Authentication(decryptedToken, permission)
 	if !isAuthn {
 		status := share.GenerateStatus(403, "")
 		return status, 0
 	}
+
 	IdUser, _ := strconv.Atoi(IdUserString)
 	status := share.GenerateStatus(200, "")
 	return status, IdUser

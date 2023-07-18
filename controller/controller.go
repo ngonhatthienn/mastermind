@@ -138,7 +138,7 @@ func (c *Controller) LogIn(ctx context.Context, in *pb.LogInRequest) (*pb.LogInR
 }
 
 func (c *Controller) CreateUser(ctx context.Context, in *pb.CreateUserRequest) (*pb.CreateUserReply, error) {
-	Id, _ := c.service.CreateUser(in.Username, in.Password, in.Email, in.Role)
+	Id, _ := c.service.CreateUser(in.Fullname, in.Username, in.Password, in.Email, in.Role)
 	return &pb.CreateUserReply{XId: Id, Message: "Welcome " + in.Username}, nil
 }
 
