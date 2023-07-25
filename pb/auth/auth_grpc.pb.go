@@ -19,14 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Auth_CreateToken_FullMethodName = "/auth.Auth/CreateToken"
+	Auth_CheckUser_FullMethodName = "/auth.Auth/CheckUser"
 )
 
 // AuthClient is the client API for Auth service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthClient interface {
-	CreateToken(ctx context.Context, in *CreateTokenRequest, opts ...grpc.CallOption) (*CreateTokenResponse, error)
+	CheckUser(ctx context.Context, in *CheckUserRequest, opts ...grpc.CallOption) (*CheckUserReply, error)
 }
 
 type authClient struct {
@@ -37,9 +37,9 @@ func NewAuthClient(cc grpc.ClientConnInterface) AuthClient {
 	return &authClient{cc}
 }
 
-func (c *authClient) CreateToken(ctx context.Context, in *CreateTokenRequest, opts ...grpc.CallOption) (*CreateTokenResponse, error) {
-	out := new(CreateTokenResponse)
-	err := c.cc.Invoke(ctx, Auth_CreateToken_FullMethodName, in, out, opts...)
+func (c *authClient) CheckUser(ctx context.Context, in *CheckUserRequest, opts ...grpc.CallOption) (*CheckUserReply, error) {
+	out := new(CheckUserReply)
+	err := c.cc.Invoke(ctx, Auth_CheckUser_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (c *authClient) CreateToken(ctx context.Context, in *CreateTokenRequest, op
 // All implementations must embed UnimplementedAuthServer
 // for forward compatibility
 type AuthServer interface {
-	CreateToken(context.Context, *CreateTokenRequest) (*CreateTokenResponse, error)
+	CheckUser(context.Context, *CheckUserRequest) (*CheckUserReply, error)
 	mustEmbedUnimplementedAuthServer()
 }
 
@@ -58,8 +58,8 @@ type AuthServer interface {
 type UnimplementedAuthServer struct {
 }
 
-func (UnimplementedAuthServer) CreateToken(context.Context, *CreateTokenRequest) (*CreateTokenResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateToken not implemented")
+func (UnimplementedAuthServer) CheckUser(context.Context, *CheckUserRequest) (*CheckUserReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUser not implemented")
 }
 func (UnimplementedAuthServer) mustEmbedUnimplementedAuthServer() {}
 
@@ -74,20 +74,20 @@ func RegisterAuthServer(s grpc.ServiceRegistrar, srv AuthServer) {
 	s.RegisterService(&Auth_ServiceDesc, srv)
 }
 
-func _Auth_CreateToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateTokenRequest)
+func _Auth_CheckUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServer).CreateToken(ctx, in)
+		return srv.(AuthServer).CheckUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Auth_CreateToken_FullMethodName,
+		FullMethod: Auth_CheckUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServer).CreateToken(ctx, req.(*CreateTokenRequest))
+		return srv.(AuthServer).CheckUser(ctx, req.(*CheckUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -100,8 +100,8 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AuthServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateToken",
-			Handler:    _Auth_CreateToken_Handler,
+			MethodName: "CheckUser",
+			Handler:    _Auth_CheckUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

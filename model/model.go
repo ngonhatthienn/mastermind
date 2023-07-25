@@ -11,13 +11,16 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc"
 
 	gameApp "intern2023/app"
 	game "intern2023/handler/Game"
 	leaderboard "intern2023/handler/Leaderboard"
 	session "intern2023/handler/Session"
 	user "intern2023/handler/User"
-	pb "intern2023/pb"
+	pb "intern2023/pb/game"
+	authpb "intern2023/pb/auth"
+
 	share "intern2023/share"
 )
 
@@ -291,12 +294,39 @@ func (s *Service) AuthorAndAuthn(md metadata.MD, permission string) (share.Statu
 		status := share.GenerateStatus(404, "User")
 		return status, 0
 	}
-	_, ok = s.pasetoMaker.CheckExactSession(decryptedToken, s.redisClient)
-	if !ok {
+	// GRPC
+	IdSessionString, ok := token.GetSessionIdFromToken(decryptedToken)
+
+	conn, err := grpc.Dial("localhost:9080", grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	client := authpb.NewAuthClient(conn)
+
+	data := &authpb.CheckUserRequest{
+		UserId: IdUserString,
+		SessionId:  IdSessionString,
+	}
+
+	resp, err := client.CheckUser(context.Background(), data)
+	if err != nil {
+		panic(err)
+	}
+	if !resp.Exists {
 		status := share.GenerateStatus(401, "Token")
 		status.Message = "Expired token "
 		return status, 0
 	}
+	// .
+	
+	// _, ok = s.pasetoMaker.CheckExactSession(decryptedToken, s.redisClient)
+	// if !ok {
+	// 	status := share.GenerateStatus(401, "Token")
+	// 	status.Message = "Expired token "
+	// 	return status, 0
+	// }
 
 	isAuthn := s.pasetoMaker.Authentication(decryptedToken, permission)
 	if !isAuthn {

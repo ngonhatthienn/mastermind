@@ -5,7 +5,7 @@ import (
 
 	"intern2023/handler/ToProto"
 	"intern2023/model"
-	pb "intern2023/pb"
+	pb "intern2023/pb/game"
 	"intern2023/share"
 
 	"google.golang.org/grpc/metadata"

@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	game "intern2023/handler/Game"
-	pb "intern2023/pb"
+	pb "intern2023/pb/game"
 	"intern2023/share"
 )
 

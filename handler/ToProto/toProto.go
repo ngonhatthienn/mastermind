@@ -4,7 +4,7 @@ import (
 	game "intern2023/handler/Game"
 	leaderboard "intern2023/handler/Leaderboard"
 	user "intern2023/handler/User"
-	pb "intern2023/pb"
+	pb "intern2023/pb/game"
 )
 
 func ToListUserProto(users []user.User) []*pb.User {

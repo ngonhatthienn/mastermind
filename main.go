@@ -12,7 +12,7 @@ import (
 
 	"intern2023/controller"
 	"intern2023/model"
-	pb "intern2023/pb"
+	pb "intern2023/pb/game"
 )
 
 func main() {
@@ -50,7 +50,6 @@ func main() {
 	if err != nil {
 		log.Fatalln("Failed to register gateway:", err)
 	}
-
 	gwServer := &http.Server{
 		Addr:    ":8090",
 		Handler: gwmux,
