@@ -10,8 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"intern2023/controller"
-	"intern2023/model"
+	"intern2023/internal/gameLogic/controller"
 	pb "intern2023/pb/game"
 )
 
@@ -21,11 +20,10 @@ func main() {
 	if err != nil {
 		log.Fatalln("Failed to listen:", err)
 	}
-	Service := model.NewService()
 
 	// Create a gRPC server object
 	s := grpc.NewServer()
-	Controller := controller.NewController(Service)
+	Controller := controller.NewController()
 	pb.RegisterServicesServer(s, Controller)
 	// Serve gRPC server
 	log.Println("Serving gRPC on 0.0.0.0:8080")

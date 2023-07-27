@@ -2,9 +2,11 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"intern2023/handler/ToProto"
-	"intern2023/model"
+	"intern2023/internal/gameLogic/handler"
 	pb "intern2023/pb/game"
 	"intern2023/share"
 
@@ -12,11 +14,12 @@ import (
 )
 
 type Controller struct {
-	service *model.Service
+	service *handler.GameLogicHandler
 	pb.UnimplementedServicesServer
 }
 
-func NewController(Service *model.Service) *Controller {
+func NewController() *Controller {
+	Service := handler.NewService()
 	return &Controller{Service, pb.UnimplementedServicesServer{}}
 }
 
@@ -25,6 +28,7 @@ func NewController(Service *model.Service) *Controller {
 func (c *Controller) CreateGame(ctx context.Context, in *pb.CreateGameRequest) (*pb.CreateGameReply, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	status, _ := c.service.AuthorAndAuthn(md, "admin")
+
 	if status.Code != 200 {
 		return &pb.CreateGameReply{
 			Code: status.Code, Message: status.Message,
@@ -104,11 +108,20 @@ func (c *Controller) UpdateGame(ctx context.Context, in *pb.UpdateGameRequest) (
 func (c *Controller) PlayGame(ctx context.Context, in *pb.PlayGameRequest) (*pb.PlayGameReply, error) {
 	// Check Auth
 	md, _ := metadata.FromIncomingContext(ctx)
+	t := time.Now()
 	status, IdUser := c.service.AuthorAndAuthn(md, "user")
+	t1 := time.Since(t)
+	fmt.Println("Time auth", t1.Milliseconds())
+
 	if status.Code != 200 {
 		return &pb.PlayGameReply{Code: status.Code, Message: status.Message}, nil
 	}
+	t = time.Now()
+
 	status, guessLeft, listHistory := c.service.PlayGame(IdUser, in.UserGuess)
+	t1 = time.Since(t)
+	fmt.Println("Time play game", t1.Milliseconds())
+
 	return &pb.PlayGameReply{Code: status.Code, Message: status.Message, GuessesLeft: int32(guessLeft), Result: listHistory}, nil
 }
 

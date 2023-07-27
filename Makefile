@@ -2,7 +2,7 @@ main_run:
 	go run main.go
 
 auth_run:
-	go run cmd/auth/auth.go
+	go run internal/auth/cmd/auth.go
   
 gen:
 	protoc -I ./proto \

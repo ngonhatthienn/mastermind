@@ -22,7 +22,7 @@ type database struct {
 	}
 }
 
-func CreateRedisDatabase() (*redis.Client, error) {
+func ConnectRedisDatabase() (*redis.Client, error) {
 	config := database{}
 	file, err := os.Open("app.env")
 	err = dotenv.NewDecoder(file).Decode(&config)
@@ -37,7 +37,7 @@ func CreateRedisDatabase() (*redis.Client, error) {
 	return client, nil
 }
 
-func CreateMongoDBConnection() *mongo.Client {
+func ConnectMongoDBConnection() *mongo.Client {
 	config := database{}
 	file, err := os.Open("app.env")
 	err = dotenv.NewDecoder(file).Decode(&config)
@@ -53,7 +53,7 @@ func CreateMongoDBConnection() *mongo.Client {
 	return client
 }
 
-func CreateGamesCollection(client *mongo.Client) *mongo.Collection {
+func ConnectGamesCollection(client *mongo.Client) *mongo.Collection {
 	quickstart := client.Database("quickstart")
 	game := quickstart.Collection("games")
 	return game

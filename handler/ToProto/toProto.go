@@ -1,13 +1,11 @@
 package ToProto
 
 import (
-	game "intern2023/handler/Game"
-	leaderboard "intern2023/handler/Leaderboard"
-	user "intern2023/handler/User"
+	"intern2023/internal/gameLogic/repository"
 	pb "intern2023/pb/game"
 )
 
-func ToListUserProto(users []user.User) []*pb.User {
+func ToListUserProto(users []repository.User) []*pb.User {
 	var userProtos []*pb.User
 	for _, user := range users {
 		userProto := &pb.User{
@@ -22,7 +20,7 @@ func ToListUserProto(users []user.User) []*pb.User {
 	return userProtos
 }
 
-func ToListGameProto(games []game.Game, isAdmin bool) []*pb.Game {
+func ToListGameProto(games []repository.Game, isAdmin bool) []*pb.Game {
 	var gameProtos []*pb.Game
 	for _, game := range games {
 		gameProto := &pb.Game{}
@@ -43,7 +41,7 @@ func ToListGameProto(games []game.Game, isAdmin bool) []*pb.Game {
 	return gameProtos
 }
 
-func ToLeaderBoardProto(leaderboards []leaderboard.LeaderBoard) []*pb.LeaderBoard {
+func ToLeaderBoardProto(leaderboards []repository.LeaderBoard) []*pb.LeaderBoard {
 	var leaderboardProtos []*pb.LeaderBoard
 	for _, leaderboard := range leaderboards {
 		leaderboardProto := &pb.LeaderBoard{

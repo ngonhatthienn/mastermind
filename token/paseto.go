@@ -98,21 +98,6 @@ func (maker *PasetoMaker) CheckExistUser(decrypted *paseto.Token, client *redis.
 	}
 	return IdUserString, true
 }
-func (maker *PasetoMaker) CheckExactSession(decrypted *paseto.Token, client *redis.Client) (string, bool) {
-	IdUserString, _ := GetUserIdFromToken(decrypted)
-	IdSessionString, ok := GetSessionIdFromToken(decrypted)
-	if !ok {
-		return "", false
-	}
-	IdSession, err := client.Get(context.Background(), share.UserPatternSession(IdUserString)).Result()
-	if err != nil || IdSession == "" {
-		return "", false
-	}
-	if(IdSession != IdSessionString ) {
-		return "", false
-	}
-	return IdSessionString, true
-}
 
 func (maker *PasetoMaker) Authentication(decrypted *paseto.Token, permission string) bool {
 	if decrypted == nil {

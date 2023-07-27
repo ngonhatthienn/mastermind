@@ -1,5 +1,4 @@
-
-package main
+package auth
 
 import (
 	"context"
@@ -20,7 +19,7 @@ type AuthServer struct {
 }
 
 func NewAuthService() *AuthServer {
-	redisClient, _ := database.CreateRedisDatabase()
+	redisClient, _ := database.ConnectRedisDatabase()
 
 	return &AuthServer{redisClient, pb.UnimplementedAuthServer{}}
 }
