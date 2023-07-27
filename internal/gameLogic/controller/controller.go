@@ -2,8 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"intern2023/handler/ToProto"
 	"intern2023/internal/gameLogic/handler"
@@ -108,19 +106,13 @@ func (c *Controller) UpdateGame(ctx context.Context, in *pb.UpdateGameRequest) (
 func (c *Controller) PlayGame(ctx context.Context, in *pb.PlayGameRequest) (*pb.PlayGameReply, error) {
 	// Check Auth
 	md, _ := metadata.FromIncomingContext(ctx)
-	t := time.Now()
 	status, IdUser := c.service.AuthorAndAuthn(md, "user")
-	t1 := time.Since(t)
-	fmt.Println("Time auth", t1.Milliseconds())
 
 	if status.Code != 200 {
 		return &pb.PlayGameReply{Code: status.Code, Message: status.Message}, nil
 	}
-	t = time.Now()
 
 	status, guessLeft, listHistory := c.service.PlayGame(IdUser, in.UserGuess)
-	t1 = time.Since(t)
-	fmt.Println("Time play game", t1.Milliseconds())
 
 	return &pb.PlayGameReply{Code: status.Code, Message: status.Message, GuessesLeft: int32(guessLeft), Result: listHistory}, nil
 }

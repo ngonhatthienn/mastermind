@@ -3,7 +3,6 @@ package handler
 import (
 	"strconv"
 	"time"
-	"fmt"
 
 	"google.golang.org/grpc/metadata"
 
@@ -106,7 +105,6 @@ func (h *GameLogicHandler) PlayGame(IdUser int, UserGuess string) (share.Status,
 	}
 
 	// Check if user already win or not
-	t := time.Now()
 	isWin, _ := h.sessionRepository.GetSessionValue(keySession, "isWin").Bool()
 	if isWin {
 		status := share.GenerateStatus(200, "")
@@ -122,9 +120,6 @@ func (h *GameLogicHandler) PlayGame(IdUser int, UserGuess string) (share.Status,
 		guessLeft--
 		h.sessionRepository.SetSessionValue(keySession, "guessLeft", guessLeft)
 	}
-	t1 := time.Since(t)
-	fmt.Println("Time get iswin and guess left", t1.Milliseconds())
-	t = time.Now()
 
 	IdGameString := share.GetKeyElement(keySession, 2)
 	IdGame, _ := strconv.Atoi(IdGameString)
@@ -135,9 +130,6 @@ func (h *GameLogicHandler) PlayGame(IdUser int, UserGuess string) (share.Status,
 	}
 	IdUserString := strconv.Itoa(IdUser)
 	rightNumber, rightPosition := gameApp.OutputGame(UserGuess, getGameValue.Game)
-
-	t1 = time.Since(t)
-	fmt.Println("Time handle input", t1.Milliseconds())
 
 	// If user win this game
 	if rightNumber == rightPosition && rightNumber == 5 {
@@ -159,13 +151,9 @@ func (h *GameLogicHandler) PlayGame(IdUser int, UserGuess string) (share.Status,
 		return status, guessLeft, nil
 	}
 
-	t = time.Now()
 
 	var listHistory []*pb.ListHistory
-	listHistory, _ = h.sessionRepository.PushAndGetHistory(keySession, UserGuess, int32(rightNumber), int32(rightPosition))
-	t1 = time.Since(t)
-	fmt.Println("Time handle history", t1.Milliseconds())
-	
+	listHistory, _ = h.sessionRepository.PushAndGetHistory(keySession, UserGuess, int32(rightNumber), int32(rightPosition))	
 	
 	status := share.GenerateStatus(200, "")
 	status.Message = "Try your best !!!"
