@@ -278,7 +278,7 @@ func (h *GameLogicHandler) AuthorAndAuthn(md metadata.MD, permission string) (sh
 		return status, 0
 	}
 
-	isAuthn := h.pasetoMaker.Authentication(decryptedToken, permission)
+	isAuthn := h.pasetoMaker.Authorization(decryptedToken, permission)
 	if !isAuthn {
 		status := share.GenerateStatus(403, "")
 		return status, 0

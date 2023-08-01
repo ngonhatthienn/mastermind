@@ -99,7 +99,7 @@ func (maker *PasetoMaker) CheckExistUser(decrypted *paseto.Token, client *redis.
 	return IdUserString, true
 }
 
-func (maker *PasetoMaker) Authentication(decrypted *paseto.Token, permission string) bool {
+func (maker *PasetoMaker) Authorization(decrypted *paseto.Token, permission string) bool {
 	if decrypted == nil {
 		return false
 	}
