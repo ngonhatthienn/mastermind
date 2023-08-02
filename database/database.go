@@ -2,33 +2,19 @@ package database
 
 import (
 	"context"
-	"os"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"github.com/golobby/dotenv"
 	"github.com/redis/go-redis/v9"
+
+	config "intern2023/handler/Config"
+
 )
 
-type database struct {
-	Redis struct {
-		Addr     string `env:"REDIS_ADDR"`
-		Password string `env:"REDIS_PASSWORD"`
-	}
-	Mongodb struct {
-		Port     string `env:"MONGO_PORT"`
-		User     string `env:"MONGO_USER"`
-		Password string `env:"MONGO_PASSWORD"`
-	}
-}
 
 func ConnectRedisDatabase() (*redis.Client, error) {
-	config := database{}
-	file, err := os.Open("app.env")
-	err = dotenv.NewDecoder(file).Decode(&config)
-	if err != nil {
-		panic(err)
-	}
+	config := config.GetConfig()
+
 	client := redis.NewClient(&redis.Options{
 		Addr:     config.Redis.Addr,
 		Password: config.Redis.Password, 
@@ -38,12 +24,7 @@ func ConnectRedisDatabase() (*redis.Client, error) {
 }
 
 func ConnectMongoDBConnection() *mongo.Client {
-	config := database{}
-	file, err := os.Open("app.env")
-	err = dotenv.NewDecoder(file).Decode(&config)
-	if err != nil {
-		panic(err)
-	}
+	config := config.GetConfig()
 	url := "mongodb+srv://" + config.Mongodb.User + ":" + config.Mongodb.Password + config.Mongodb.Port
 	opts := options.Client().ApplyURI(url)
 	client, err := mongo.Connect(context.Background(), opts)
